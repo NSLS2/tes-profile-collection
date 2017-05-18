@@ -8,3 +8,4 @@ class XYStage(Device):
 xy_stage = XYStage('XF:08BMES-OP{SM:1-Ax:', name='xy_stage')
 
 mono_energy = EpicsMotor('x08bm:mon', name='mono_energy')
+mono_energy.settle_time = 1.0
