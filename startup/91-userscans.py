@@ -3,10 +3,26 @@ from bluesky.callbacks.broker import LiveTiffExporter, post_run
 xrfmapTiffOutputDir = '/home/xf08bm/DATA2017/Comissioning/20170619/' 
 #hard-coded for testing now; need to be set to automatically use SAF, today's date, etc.
 
-sclrDataKeyList = [sclr.channels.chan1.name, sclr.channels.chan2.name, sclr.channels.chan3.name, sclr.channels.chan4.name, sclr.channels.chan5.name,
-                   sclr.channels.chan6.name, sclr.channels.chan7.name, sclr.channels.chan8.name, sclr.channels.chan9.name, sclr.channels.chan10.name,
-                   sclr.channels.chan11.name, sclr.channels.chan12.name, sclr.channels.chan13.name, sclr.channels.chan14.name, sclr.channels.chan15.name,
-                   sclr.channels.chan16.name, sclr.channels.chan17.name, sclr.channels.chan18.name, sclr.channels.chan19.name, sclr.channels.chan20.name]
+sclrDataKeyList = [sclr.channels.chan1.name,
+                   sclr.channels.chan2.name,
+                   sclr.channels.chan3.name,
+                   sclr.channels.chan4.name,
+                   sclr.channels.chan5.name,
+                   sclr.channels.chan6.name,
+                   sclr.channels.chan7.name,
+                   sclr.channels.chan8.name,
+                   sclr.channels.chan9.name,
+                   sclr.channels.chan10.name,
+                   sclr.channels.chan11.name,
+                   sclr.channels.chan12.name,
+                   sclr.channels.chan13.name,
+                   sclr.channels.chan14.name,
+                   sclr.channels.chan15.name,
+                   sclr.channels.chan16.name,
+                   sclr.channels.chan17.name,
+                   sclr.channels.chan18.name,
+                   sclr.channels.chan19.name,
+                   sclr.channels.chan20.name]
 
 
 
@@ -38,7 +54,10 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
     callbackTokenList = []
     
     for roi in rois:
-        livecallbacks.append(LiveGrid((ynumstep+1, xnumstep+1), roi, xlabel = 'x (mm)', ylabel = 'y (mm)', extent=[xstart, xstop, ystart, ystop]))
+        livecallbacks.append(LiveGrid((ynumstep+1, xnumstep+1), roi,
+                                      xlabel='x (mm)',
+                                      ylabel='y (mm)',
+                                      extent=[xstart, xstop, ystart, ystop]))
         livetableitem.append(roi)
 
 
@@ -46,7 +65,8 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
         xrfmapOutputTiffTemplate = xrfmapTiffOutputDir+"xrfmap_scan{start[scan_id]}" +roi+ ".tiff"
 #        xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)
         xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate, roi)        
-        callbackToken = RE.subscribe('all', post_run(xrfmapTiffexporter, db=db))#check to see if this is the right way to have RE here...
+        callbackToken = RE.subscribe('all', post_run(xrfmapTiffexporter, db=db))
+        #check to see if this is the right way to have RE here...
         callbackTokenList.append(callbackToken)
 
     livecallbacks.append(LiveTable(livetableitem))
