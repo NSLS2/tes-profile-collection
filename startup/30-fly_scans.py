@@ -8,18 +8,19 @@ dtt = None
 sclr = None
 energy = None
 
+
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
     limits = motor.limits
     if any(not (limits[0] < v < limits[1]) for v in (start, stop)):
-        raise LimitError(f"your requested {k} values are out of limits for the motor "
+        raise LimitError(f"your requested {k} values are out of limits for "
+                         "the motor "
                          f"{limits[0]} < ({start}, {stop}) < {limits[1]}")
 
 
-def xy_fly(dwell_time,
-           xstart, xstop, num_xpixels,
-           ystart, ystop, num_ypixels=None,
-           *, scan_title):
+def xy_fly(scan_title, dwell_time,
+           xstart, xstop, xstep_size,
+           ystart, ystop, ystep_size=None):
     """Do a x-y fly scan.
 
     The x-motor is the 'fast' direction.
@@ -45,15 +46,27 @@ def xy_fly(dwell_time,
     scan_title : str
        Title of scan, required.
     """
+    # TODO blow up on inverted values
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, 'x')
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, 'y')
+    ystep_size = ystep_size if ystep_size is not None else xstep_size
+    ret = yield from bps.read(xy_fly_stage.x.mres)  # (in mm)
+    xmres = (ret[xy_fly_stage.x.mres['name']]
+             if ret is not None else np.nan)
 
-    num_ypixels = num_ypixels if num_ypixels is not None else num_xpixels
+    ret = yield from bps.read(xy_fly_stage.y.mres)  # (in mm)
+    ymres = (ret[xy_fly_stage.y.mres['name']]
+             if ret is not None else np.nan)
 
-    xstep_size = (xstop - xstart) / num_xpixels
-    ystep_size = (ystop - ystart) / num_ypixels
+    prescale = int(np.floor((xstep_size / (5 * xmres))))
+    a_xstep_size = prescale * (5 * xmres)
 
-    flyspeed = abs(xstop - xstart) / dwell_time  # this is in mm/ms == m/s
+    a_ystep_size = int(np.floor((ystep_size / (ymres)))) * ymres
+
+    num_xpixels = int(np.floor((xstop - xstart) / a_xstep_size))
+    num_ypixels = int(np.floor((ystop - ystart) / a_ystep_size))
+
+    flyspeed = a_xstep_size / dwell_time  # this is in mm/ms == m/s
 
     try:
         xy_fly_stage.x.velocity.check_value(flyspeed)
@@ -75,19 +88,13 @@ def xy_fly(dwell_time,
     # TODO make this a message?
     sclr.set_mode('flying')
 
-    # get the motor resolution
-    ret = yield from bps.read(xy_fly_stage.x.mres)
-    mres = (ret[xy_fly_stage.x.mres['name']]
-            if ret is not None else np.nan)
-
     # poke the struck settings
-    prescale = xstep_size * mres
     yield from bps.mv(sclr.prescale, prescale)
     yield from bps.mv(sclr.nuse, num_xpixels)
 
     # TODO check wrapper order
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([energy])
+    @bpp.baseline_decorator([energy, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_wrapper(md={'scan_title': scan_title})
     def fly_body():
@@ -98,6 +105,9 @@ def xy_fly(dwell_time,
 
             # set the fly speed
             yield from bps.mv(xy_fly_stage.x.velocity, flyspeed)
+
+            yield from bps.trigger_and_read([xy_fly_stage],
+                                            name='row_ends')
 
             for v in ['p1600=0', 'p1601=0']:
                 yield from bps.mv(dtt, v)
@@ -111,9 +121,12 @@ def xy_fly(dwell_time,
             # read and save the struck
             yield from bps.create(name='primary')
             yield from bps.read(sclr)
-            yield from bps.read(xy_fly_stage.y)
             yield from bps.save()
+
+            yield from bps.trigger_and_read([xy_fly_stage],
+                                            name='row_ends')
 
             yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
 
+    # TODO always set motor speed back to 5
     yield from fly_body()

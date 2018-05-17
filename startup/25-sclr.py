@@ -52,7 +52,6 @@ class Scaler(Device):
         super().__init__(*args, **kwargs)
         self.set_mode(mode)
 
-
     def match_names(self, N=20):
         self.cnts.match_names()
         for j in range(1, N+1):
