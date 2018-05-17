@@ -1,25 +1,29 @@
 from ophyd.scaler import ScalerCH
 from ophyd.device import (Component as C, DynamicDeviceComponent as DDC,
-                          FormattedComponent as FC)
+                          FormattedComponent as FC, kind_context)
 from ophyd.status import StatusBase
 
 
 class ScalerMCA(Device):
     _default_read_attrs = ('channels', 'current_channel')
     _default_configuration_attrs = ('nuse', 'prescale')
-    
-    channels = DDC({f'mca{k:02d}': (EpicsSignal, f"mca{k}", {}) for k in range(1, 21)})
-    startall = C(EpicsSignal, 'StartAll', string=True)
-    stopall = C(EpicsSignal, 'StopAll', string=True)
-    eraseall = C(EpicsSignal, 'EraseAll', string=True)
-    erasestart = C(EpicsSignal, 'EraseStart', string=True)
 
+    # things to be read as data
+    channels = DDC({f'mca{k:02d}': (EpicsSignal, f"mca{k}", {}) for k in range(1, 21)})
     current_channel = C(EpicsSignal, 'CurrentChannel')
-    nuse = C(EpicsSignal, 'NuseAll')
-    prescale = C(EpicsSignal, 'Prescale')
+    # configuration details
+    nuse = C(EpicsSignal, 'NuseAll', kind='config')
+    prescale = C(EpicsSignal, 'Prescale', kind='config')
+
+    # control PVs
 
     # high is acquiring
-    status = C(EpicsSignal, 'Acquiring', string=True)
+    with kind_context('ommitted') as Co:
+        status = Co(EpicsSignal, 'Acquiring', string=True,)
+        startall = Co(EpicsSignal, 'StartAll', string=True)
+        stopall = Co(EpicsSignal, 'StopAll', string=True)
+        eraseall = Co(EpicsSignal, 'EraseAll', string=True)
+        erasestart = Co(EpicsSignal, 'EraseStart', string=True)
 
     def stage(self):
         super().stage()
@@ -32,14 +36,18 @@ class ScalerMCA(Device):
         self.erasestart.put('Erase')
 
         return StatusBase()
-    
+
+    def read(self):
+        # TODO handle file writing and document generation
+        return super().read()
+
 
 class Scaler(Device):
     # MCAs
     mcas = C(ScalerMCA, '')
     # TODO maybe an issue with the timing around the triggering?
     cnts = C(ScalerCH, 'scaler1')
-    
+
     def __init__(self, *args, mode='counting', **kwargs):
         super().__init__(*args, **kwargs)
         self.set_mode(mode)
@@ -72,7 +80,7 @@ class Scaler(Device):
             return self.mcas.trigger()
         else:
             raise ValueError
-        
+
     def stage(self):
         self.match_names()
         if self._mode == 'counting':
@@ -107,4 +115,3 @@ def tes_fly_struck(xstart, xstop, ystart, ystop, ysteps):
         yield from bps.abs_set(x_mtr, xstop, group='fly_row')
 
         yield from bps.trigger_and_read([sclr])
-        

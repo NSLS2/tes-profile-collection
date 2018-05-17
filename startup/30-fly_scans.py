@@ -1,10 +1,12 @@
 from ophyd.utils import LimitError
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
+import numpy as np
+
 xy_fly_stage = None
 dtt = None
-struck = None
-
+sclr = None
+energy = None
 
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
@@ -43,7 +45,6 @@ def xy_fly(dwell_time,
     scan_title : str
        Title of scan, required.
     """
-
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, 'x')
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, 'y')
 
@@ -71,12 +72,23 @@ def xy_fly(dwell_time,
     yield from bps.mv(xy_fly_stage.x, xstart,
                       xy_fly_stage.y, ystart)
 
-    # TODO compute prescale values
+    # TODO make this a message?
+    sclr.set_mode('flying')
 
-    # TODO poke the struck settings, sort out what we want in stage vs here
+    # get the motor resolution
+    ret = yield from bps.read(xy_fly_stage.x.mres)
+    mres = (ret[xy_fly_stage.x.mres['name']]
+            if ret is not None else np.nan)
 
+    # poke the struck settings
+    prescale = xstep_size * mres
+    yield from bps.mv(sclr.prescale, prescale)
+    yield from bps.mv(sclr.nuse, num_xpixels)
+
+    # TODO check wrapper order
+    @bpp.stage_decorator([sclr])
+    @bpp.baseline_decorator([energy])
     # TODO put is other meta data
-    @bpp.stage_decorator([struck])
     @bpp.run_wrapper(md={'scan_title': scan_title})
     def fly_body():
         for y in range(num_ypixels):
@@ -92,12 +104,13 @@ def xy_fly(dwell_time,
                 yield from bps.sleep(0.01)
 
             # arm the struck
-            yield from bps.trigger(struck)
+            yield from bps.trigger(sclr, group=f'fly_row_{y}')
             # fly the motor
-            yield from bps.mv(xy_fly_stage.x, xstop)
+            yield from bps.abs_set(xy_fly_stage.x, xstop, group=f'fly_row_{y}')
+            yield from bps.wait(group=f'fly_row_{y}')
             # read and save the struck
             yield from bps.create(name='primary')
-            yield from bps.read(struck)
+            yield from bps.read(sclr)
             yield from bps.read(xy_fly_stage.y)
             yield from bps.save()
 
