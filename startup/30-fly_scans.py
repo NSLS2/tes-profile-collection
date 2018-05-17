@@ -3,11 +3,6 @@ import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
 
-xy_fly_stage = None
-dtt = None
-sclr = None
-energy = None
-
 
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
@@ -46,17 +41,18 @@ def xy_fly(scan_title, dwell_time,
     scan_title : str
        Title of scan, required.
     """
+    xy_fly_stage = xy_stage
     # TODO blow up on inverted values
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, 'x')
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, 'y')
     ystep_size = ystep_size if ystep_size is not None else xstep_size
     ret = yield from bps.read(xy_fly_stage.x.mres)  # (in mm)
-    xmres = (ret[xy_fly_stage.x.mres['name']]
-             if ret is not None else np.nan)
+    xmres = (ret[xy_fly_stage.x.mres.name]['value']
+             if ret is not None else .0003125)
 
     ret = yield from bps.read(xy_fly_stage.y.mres)  # (in mm)
-    ymres = (ret[xy_fly_stage.y.mres['name']]
-             if ret is not None else np.nan)
+    ymres = (ret[xy_fly_stage.y.mres.name]['value']
+             if ret is not None else .0003125)
 
     prescale = int(np.floor((xstep_size / (5 * xmres))))
     a_xstep_size = prescale * (5 * xmres)
@@ -78,26 +74,27 @@ def xy_fly(scan_title, dwell_time,
                          'is out of range.') from e
 
     # set up delta-tau trigger to fast motor
-    for v in ['p1600=0', 'p1607=1', 'p1601=0']:
+    for v in ['p1600=0', 'p1607=1', 'p1600=1']:
         yield from bps.mv(dtt, v)
-        yield from bps.sleep(0.01)
-
-    yield from bps.mv(xy_fly_stage.x, xstart,
-                      xy_fly_stage.y, ystart)
+        yield from bps.sleep(0.1)
 
     # TODO make this a message?
     sclr.set_mode('flying')
 
     # poke the struck settings
-    yield from bps.mv(sclr.prescale, prescale)
-    yield from bps.mv(sclr.nuse, num_xpixels)
+    yield from bps.mv(sclr.mcas.prescale, prescale)
+    yield from bps.mv(sclr.mcas.nuse, num_xpixels)
 
-    # TODO check wrapper order
+    @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([energy, xy_fly_stage])
+    @bpp.baseline_decorator([mono_energy, xy_fly_stage])
     # TODO put is other meta data
-    @bpp.run_wrapper(md={'scan_title': scan_title})
+    @bpp.run_decorator(md={'scan_title': scan_title})
     def fly_body():
+
+        yield from bps.mv(xy_fly_stage.x, xstart,
+                          xy_fly_stage.y, ystart)
+        
         for y in range(num_ypixels):
             # go to start of row
             yield from bps.mv(xy_fly_stage.x, xstart,
@@ -109,24 +106,29 @@ def xy_fly(scan_title, dwell_time,
             yield from bps.trigger_and_read([xy_fly_stage],
                                             name='row_ends')
 
-            for v in ['p1600=0', 'p1601=0']:
+            for v in ['p1600=0', 'p1600=1']:
                 yield from bps.mv(dtt, v)
-                yield from bps.sleep(0.01)
+                yield from bps.sleep(0.1)
 
             # arm the struck
             yield from bps.trigger(sclr, group=f'fly_row_{y}')
             # fly the motor
-            yield from bps.abs_set(xy_fly_stage.x, xstop, group=f'fly_row_{y}')
+            yield from bps.abs_set(xy_fly_stage.x, xstop + a_xstep_size,
+                                   group=f'fly_row_{y}')
             yield from bps.wait(group=f'fly_row_{y}')
+
+            
+            yield from bps.trigger_and_read([xy_fly_stage],
+                                            name='row_ends')
+
+            yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
+            yield from bps.sleep(.1)
             # read and save the struck
             yield from bps.create(name='primary')
             yield from bps.read(sclr)
             yield from bps.save()
 
-            yield from bps.trigger_and_read([xy_fly_stage],
-                                            name='row_ends')
 
-            yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
 
     # TODO always set motor speed back to 5
     yield from fly_body()

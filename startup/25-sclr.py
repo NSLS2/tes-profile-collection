@@ -1,6 +1,6 @@
 from ophyd.scaler import ScalerCH
 from ophyd.device import (Component as C, DynamicDeviceComponent as DDC,
-                          FormattedComponent as FC, kind_context)
+                          FormattedComponent as FC, kind_context, Device)
 from ophyd.status import StatusBase
 
 
@@ -18,7 +18,7 @@ class ScalerMCA(Device):
     # control PVs
 
     # high is acquiring
-    with kind_context('ommitted') as Co:
+    with kind_context('omitted') as Co:
         status = Co(EpicsSignal, 'Acquiring', string=True,)
         startall = Co(EpicsSignal, 'StartAll', string=True)
         stopall = Co(EpicsSignal, 'StopAll', string=True)
@@ -35,18 +35,23 @@ class ScalerMCA(Device):
     def trigger(self):
         self.erasestart.put('Erase')
 
-        return StatusBase()
+        return StatusBase(done=True, success=True)
 
     def read(self):
         # TODO handle file writing and document generation
         return super().read()
 
 
+class FixedScalerCH(ScalerCH):
+    def __init__(self, *args, **kwargs):
+        Device.__init__(self, *args, **kwargs)
+
+
 class Scaler(Device):
     # MCAs
     mcas = C(ScalerMCA, '')
     # TODO maybe an issue with the timing around the triggering?
-    cnts = C(ScalerCH, 'scaler1')
+    cnts = C(FixedScalerCH, 'scaler1')
 
     def __init__(self, *args, mode='counting', **kwargs):
         super().__init__(*args, **kwargs)
@@ -75,7 +80,7 @@ class Scaler(Device):
     def trigger(self):
         if self._mode == 'counting':
             return self.cnts.trigger()
-        elif mode == 'flying':
+        elif self._mode == 'flying':
             return self.mcas.trigger()
         else:
             raise ValueError
@@ -84,7 +89,7 @@ class Scaler(Device):
         self.match_names()
         if self._mode == 'counting':
             return self.cnts.stage()
-        elif mode == 'flying':
+        elif self._mode == 'flying':
             return self.mcas.stage()
         else:
             raise ValueError
@@ -92,7 +97,7 @@ class Scaler(Device):
     def unstage(self):
         if self._mode == 'counting':
             return self.cnts.unstage()
-        elif mode == 'flying':
+        elif self._mode == 'flying':
             return self.mcas.unstage()
         else:
             raise ValueError
@@ -105,12 +110,3 @@ sclr.match_names(20)
 sclr.set_mode('counting')
 
 
-def tes_fly_struck(xstart, xstop, ystart, ystop, ysteps):
-    sclr.set_mode('flying')
-
-    for y in np.linspace(ystart, ystop, ysteps):
-        yield from bps.mv(x_mtr, x_start, y_mtr, y)
-        yield from bps.trigger(sclr, group='fly_row'))
-        yield from bps.abs_set(x_mtr, xstop, group='fly_row')
-
-        yield from bps.trigger_and_read([sclr])
