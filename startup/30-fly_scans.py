@@ -146,6 +146,8 @@ def E_fly(scan_title, *,
           step_size,
           num_scans):
     _validate_motor_limits(mono.energy, start, stop, 'E')
+    assert step_size > 0, f'step_size ({step_size}) must be more than 0'
+    assert num_scans > 0, f'num_scans ({num_scans}) must be more than 0'
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
