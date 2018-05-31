@@ -12,8 +12,11 @@ def _validate_motor_limits(motor, start, stop, k):
                          "the motor "
                          f"{limits[0]} < ({start}, {stop}) < {limits[1]}")
 
+def _get_v_with_dflt(sig, dflt):
+    ret = yield from bps.read(sig)
+    return (ret[sig.name]['value'] if ret is not None else dflt)
 
-def xy_fly(scan_title, dwell_time,
+def xy_fly(scan_title, *, dwell_time,
            xstart, xstop, xstep_size,
            ystart, ystop, ystep_size=None):
     """Do a x-y fly scan.
@@ -87,14 +90,14 @@ def xy_fly(scan_title, dwell_time,
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([mono_energy, xy_fly_stage])
+    @bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(md={'scan_title': scan_title})
     def fly_body():
 
         yield from bps.mv(xy_fly_stage.x, xstart,
                           xy_fly_stage.y, ystart)
-        
+
         for y in range(num_ypixels):
             # go to start of row
             yield from bps.mv(xy_fly_stage.x, xstart,
@@ -117,7 +120,7 @@ def xy_fly(scan_title, dwell_time,
                                    group=f'fly_row_{y}')
             yield from bps.wait(group=f'fly_row_{y}')
 
-            
+
             yield from bps.trigger_and_read([xy_fly_stage],
                                             name='row_ends')
 
@@ -129,6 +132,108 @@ def xy_fly(scan_title, dwell_time,
             yield from bps.save()
 
 
+    yield from fly_body()
 
-    # TODO always set motor speed back to 5
+E_centers = Signal(value=[], name='E_centers', kind='normal')
+
+def E_fly(scan_title, *,
+          start, stop,
+          step_size,
+          num_scans):
+    _validate_motor_limits(mono.energy, start, stop, 'E')
+
+    e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
+    energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
+
+    def _linear_to_energy(linear):
+        linear = np.asarray(linear)
+        return (e_back / np.sin(
+            np.deg2rad(45)
+            + 0.5*np.arctan((28.2474 - linear) / 35.02333)
+            + np.deg2rad(energy_cal)/2
+                )
+        )
+
+    def _energy_to_linear(energy):
+        energy = np.asarray(energy)
+        return (28.2474 + 35.02333 * np.tan(
+            np.pi / 2
+            - 2 * np.arcsin(e_back / energy)
+            + np.deg2rad(energy_cal)
+            )
+        )
+
+    # get limits in linear parameters
+    l_start, l_stop = _energy_to_linear([start, stop])
+    l_step_size = np.diff(_energy_to_linear([start, start + step_size]))
+
+    # scale to match motor resolution
+    lmres = yield from _get_v_with_dflt(mono.linear.mres, .0001666)
+
+    prescale = int(np.floor((l_step_size / (5 * lmres))))
+    a_l_step_size = prescale * (5 * lmres)
+
+    num_pixels = int(np.floor((l_stop - l_start) / a_l_step_size))
+
+    bin_edges = _linear_to_energy(
+        l_start + a_l_step_size * np.arange(num_pixels + 1))
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    yield from bps.mv(E_centers, list(bin_centers))
+
+    # The flyspeed is set by Paul by edict
+    flyspeed = 0.1
+
+    # set up delta-tau trigger to fast motor
+    for v in ['p1600=0', 'p1607=4', 'p1600=1']:
+        yield from bps.mv(dtt, v)
+        yield from bps.sleep(0.1)
+
+    # TODO make this a message?
+    sclr.set_mode('flying')
+
+    # poke the struck settings
+    yield from bps.mv(sclr.mcas.prescale, prescale)
+    yield from bps.mv(sclr.mcas.nuse, num_pixels)
+
+    @bpp.reset_positions_decorator([mono.linear])
+    @bpp.stage_decorator([sclr])
+    @bpp.baseline_decorator([mono, xy_stage])
+    # TODO put is other meta data
+    @bpp.run_decorator(md={'scan_title': scan_title})
+    def fly_body():
+        yield from bps.trigger_and_read([E_centers], name='energy_bins')
+
+        for y in range(num_scans):
+            # go to start of row
+            yield from bps.mv(mono.linear, l_start)
+
+            # set the fly speed
+            yield from bps.mv(mono.linear.velocity, flyspeed)
+
+            yield from bps.trigger_and_read([mono],
+                                            name='row_ends')
+
+            for v in ['p1600=0', 'p1600=1']:
+                yield from bps.mv(dtt, v)
+                yield from bps.sleep(0.1)
+
+            # arm the struck
+            yield from bps.trigger(sclr, group=f'fly_energy_{y}')
+            # fly the motor
+            yield from bps.abs_set(mono.linear, l_stop + a_l_step_size,
+                                   group=f'fly_energy_{y}')
+            yield from bps.wait(group=f'fly_energy_{y}')
+
+            yield from bps.trigger_and_read([mono],
+                                            name='row_ends')
+
+            yield from bps.mv(mono.linear.velocity, 0.5)
+            # hard coded to let the sclr count its fingers and toes
+            yield from bps.sleep(.1)
+            # read and save the struck
+            yield from bps.create(name='primary')
+            yield from bps.read(sclr)
+            yield from bps.save()
+
     yield from fly_body()
