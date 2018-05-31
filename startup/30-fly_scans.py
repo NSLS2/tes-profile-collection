@@ -8,7 +8,7 @@ import numpy as np
 def _validate_motor_limits(motor, start, stop, k):
     # blow up on inverted values
     assert start < stop, (f'start ({start}) must be smaller than '
-                          f'stop ({stop})')
+                          f'stop ({stop}) for {k}')
     limits = motor.limits
     if any(not (limits[0] < v < limits[1]) for v in (start, stop)):
         raise LimitError(f"your requested {k} values are out of limits for "
@@ -51,6 +51,9 @@ def xy_fly(scan_title, *, dwell_time,
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, 'x')
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, 'y')
     ystep_size = ystep_size if ystep_size is not None else xstep_size
+    assert dwell_time > 0, f'dwell_time ({dwell_time}) must be more than 0'
+    assert xstep_size > 0, f'xstep_size ({xstep_size}) must be more than 0'
+    assert ystep_size > 0, f'ystep_size ({ystep_size}) must be more than 0'
     ret = yield from bps.read(xy_fly_stage.x.mres)  # (in mm)
     xmres = (ret[xy_fly_stage.x.mres.name]['value']
              if ret is not None else .0003125)
