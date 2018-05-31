@@ -6,6 +6,9 @@ import numpy as np
 
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
+    # blow up on inverted values
+    assert start < stop, (f'start ({start}) must be smaller than '
+                          f'stop ({stop})')
     limits = motor.limits
     if any(not (limits[0] < v < limits[1]) for v in (start, stop)):
         raise LimitError(f"your requested {k} values are out of limits for "
@@ -45,7 +48,6 @@ def xy_fly(scan_title, *, dwell_time,
        Title of scan, required.
     """
     xy_fly_stage = xy_stage
-    # TODO blow up on inverted values
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, 'x')
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, 'y')
     ystep_size = ystep_size if ystep_size is not None else xstep_size
