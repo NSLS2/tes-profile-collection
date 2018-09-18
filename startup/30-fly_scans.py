@@ -140,6 +140,7 @@ def xy_fly(scan_title, *, dwell_time,
     yield from fly_body()
 
 E_centers = Signal(value=[], name='E_centers', kind='normal')
+E_centers.tolerance = 1e-15
 
 def E_fly(scan_title, *,
           start, stop,
@@ -186,7 +187,7 @@ def E_fly(scan_title, *,
         l_start + a_l_step_size * np.arange(num_pixels + 1))
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-    yield from bps.mv(E_centers, list(bin_centers))
+    yield from bps.mv(E_centers, bin_centers)
 
     # The flyspeed is set by Paul by edict
     flyspeed = 0.1
