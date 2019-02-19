@@ -1,7 +1,8 @@
 from ophyd.scaler import ScalerCH
 from ophyd.device import (Component as C, DynamicDeviceComponent as DDC,
-                          FormattedComponent as FC, kind_context, Device)
+                          kind_context, Device)
 from ophyd.status import StatusBase
+from ophyd import EpicsSignal
 
 
 class ScalerMCA(Device):
@@ -9,7 +10,8 @@ class ScalerMCA(Device):
     _default_configuration_attrs = ('nuse', 'prescale')
 
     # things to be read as data
-    channels = DDC({f'mca{k:02d}': (EpicsSignal, f"mca{k}", {}) for k in range(1, 21)})
+    channels = DDC({f'mca{k:02d}': (EpicsSignal, f"mca{k}", {})
+                    for k in range(1, 21)})
     current_channel = C(EpicsSignal, 'CurrentChannel')
     # configuration details
     nuse = C(EpicsSignal, 'NuseAll', kind='config')
@@ -108,5 +110,3 @@ sclr.cnts.channels.read_attrs = [f"chan{j:02d}" for j in range(1, 21)]
 sclr.mcas.channels.read_attrs = [f"mca{j:02d}" for j in range(1, 21)]
 sclr.match_names(20)
 sclr.set_mode('counting')
-
-
