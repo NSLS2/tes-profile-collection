@@ -3,27 +3,6 @@ from bluesky.callbacks.broker import LiveTiffExporter, post_run
 xrfmapTiffOutputDir = '/home/xf08bm/DATA2017/Comissioning/20170619/' 
 #hard-coded for testing now; need to be set to automatically use SAF, today's date, etc.
 
-sclrDataKeyList = [sclr.cnts.channels.chan01.name,
-                   sclr.cnts.channels.chan02.name,
-                   sclr.cnts.channels.chan03.name,
-                   sclr.cnts.channels.chan04.name,
-                   sclr.cnts.channels.chan05.name,
-                   sclr.cnts.channels.chan06.name,
-                   sclr.cnts.channels.chan07.name,
-                   sclr.cnts.channels.chan08.name,
-                   sclr.cnts.channels.chan09.name,
-                   sclr.cnts.channels.chan10.name,
-                   sclr.cnts.channels.chan11.name,
-                   sclr.cnts.channels.chan12.name,
-                   sclr.cnts.channels.chan13.name,
-                   sclr.cnts.channels.chan14.name,
-                   sclr.cnts.channels.chan15.name,
-                   sclr.cnts.channels.chan16.name,
-                   sclr.cnts.channels.chan17.name,
-                   sclr.cnts.channels.chan18.name,
-                   sclr.cnts.channels.chan19.name,
-                   sclr.cnts.channels.chan20.name]
-
 
 
 def xrfmap(*, xstart, xnumstep, xstepsize, 
@@ -74,7 +53,7 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
     #setup LiveOutput
 
     if sclr in xrfdet:
-        for sclrDataKey in sclrDataKeyList:
+        for sclrDataKey in [getattr(sclr.cnts.channels, f'chan{j:02d}') for d in range(1, 21)]:
             xrfmapOutputTiffTemplate = xrfmapTiffOutputDir+"xrfmap_scan{start[scan_id]}" + sclrDataKey + ".tiff"
 #           xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)  #LiveTiffExporter exports one array from one event, commented out for future reference
             xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate, sclrDataKey)
