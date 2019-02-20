@@ -16,7 +16,8 @@ class ScalerMCA(Device):
     # configuration details
     nuse = C(EpicsSignal, 'NuseAll', kind='config')
     prescale = C(EpicsSignal, 'Prescale', kind='config')
-
+    channel_advance = C(EpicsSignal, 'ChannelAdvance')
+    
     # control PVs
 
     # high is acquiring
@@ -108,5 +109,6 @@ class Scaler(Device):
 sclr = Scaler('XF:08BM-ES:1{Sclr:1}', name='sclr')
 sclr.cnts.channels.read_attrs = [f"chan{j:02d}" for j in range(1, 21)]
 sclr.mcas.channels.read_attrs = [f"mca{j:02d}" for j in range(1, 21)]
+sclr.mcas.stage_sigs['channel_advance'] = 'External'
 sclr.match_names(20)
 sclr.set_mode('counting')
