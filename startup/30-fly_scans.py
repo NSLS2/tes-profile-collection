@@ -1,4 +1,5 @@
 from ophyd.utils import LimitError
+from ophyd import Signal
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
@@ -15,9 +16,11 @@ def _validate_motor_limits(motor, start, stop, k):
                          "the motor "
                          f"{limits[0]} < ({start}, {stop}) < {limits[1]}")
 
+
 def _get_v_with_dflt(sig, dflt):
     ret = yield from bps.read(sig)
     return (ret[sig.name]['value'] if ret is not None else dflt)
+
 
 def xy_fly(scan_title, *, dwell_time,
            xstart, xstop, xstep_size,
@@ -136,11 +139,12 @@ def xy_fly(scan_title, *, dwell_time,
             yield from bps.read(sclr)
             yield from bps.save()
 
-
     yield from fly_body()
+
 
 E_centers = Signal(value=[], name='E_centers', kind='normal')
 E_centers.tolerance = 1e-15
+
 
 def E_fly(scan_title, *,
           start, stop,

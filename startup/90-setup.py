@@ -25,6 +25,6 @@ def escan(start, stop, num, md=None):
 
     plan = bp.scan(dets, motor, start, stop, num, md=md)
     plan2 = bpp.subs_wrapper(plan, [LiveTable(cols),
-                                   LivePlot('If_tot', x, ax=axes[0]),
-                                   LivePlot('I0', x, ax=axes[1])])
+                                    LivePlot('If_tot', x, ax=axes[0]),
+                                    LivePlot('I0', x, ax=axes[1])])
     yield from plan2
