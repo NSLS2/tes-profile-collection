@@ -32,7 +32,7 @@ def xy_fly(scan_title, *, dwell_time,
     Parameters
     ----------
     dwell_time : float
-       Target time is ms on each pixel
+       Target time is s on each pixel
 
     xstart, xstop : float
        The start and stop values in the fast direction in mm
@@ -73,7 +73,7 @@ def xy_fly(scan_title, *, dwell_time,
     num_xpixels = int(np.floor((xstop - xstart) / a_xstep_size))
     num_ypixels = int(np.floor((ystop - ystart) / a_ystep_size))
 
-    flyspeed = a_xstep_size / dwell_time  # this is in mm/ms == m/s
+    flyspeed = a_xstep_size / dwell_time  # this is in mm/s
 
     try:
         xy_fly_stage.x.velocity.check_value(flyspeed)
