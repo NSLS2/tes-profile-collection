@@ -76,4 +76,4 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
 
     scaninfo = yield from xrfmap_scanplan
 
-    return xrfmap_scanplan
+    return scaninfo
