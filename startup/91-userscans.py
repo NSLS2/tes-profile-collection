@@ -1,6 +1,6 @@
 from bluesky.callbacks.broker import (post_run, LiveGrid, LiveTable)
 
-xrfmapTiffOutputDir = '/home/xf08bm/DATA2017/Comissioning/20170619/'
+# xrfmapTiffOutputDir = '/home/xf08bm/DATA2017/Comissioning/20170619/'
 # hard-coded for testing now; need to be set to automatically use SAF, today's date, etc.
 
 
@@ -42,31 +42,31 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
                                       extent=[xstart, xstop, ystart, ystop]))
         livetableitem.append(roi)
 
-        # setup LiveOutput
-        xrfmapOutputTiffTemplate = (xrfmapTiffOutputDir +
-                                    "xrfmap_scan{start[scan_id]}" +
-                                    roi + ".tiff")
-        # xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)
-        xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate, roi)
-        livecallbacks.append(xrfmapTiffexporter)
+    #     # setup LiveOutput
+    #     xrfmapOutputTiffTemplate = (xrfmapTiffOutputDir +
+    #                                 "xrfmap_scan{start[scan_id]}" +
+    #                                 roi + ".tiff")
+    #     # xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)
+    #     xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate, roi)
+    #     livecallbacks.append(xrfmapTiffexporter)
 
     livecallbacks.append(LiveTable(livetableitem))
 
     # setup LiveOutput
 
-    if sclr in xrfdet:
-        for sclrDataKey in [getattr(sclr.cnts.channels, f'chan{j:02d}') for d in range(1, 21)]:
-            xrfmapOutputTiffTemplate = (xrfmapTiffOutputDir +
-                                        "xrfmap_scan{start[scan_id]}" +
-                                        sclrDataKey + ".tiff")
-
-            # xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)
-
-            # LiveTiffExporter exports one array from one event,
-            # commented out for future reference
-            xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate,
-                                             sclrDataKey)
-            livecallbacks.append(xrfmapTiffexporter)
+    # if sclr in xrfdet:
+    #     for sclrDataKey in [getattr(sclr.cnts.channels, f'chan{j:02d}') for d in range(1, 21)]:
+    #         xrfmapOutputTiffTemplate = (xrfmapTiffOutputDir +
+    #                                     "xrfmap_scan{start[scan_id]}" +
+    #                                     sclrDataKey + ".tiff")
+    #
+    #         # xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)
+    #
+    #         # LiveTiffExporter exports one array from one event,
+    #         # commented out for future reference
+    #         xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate,
+    #                                          sclrDataKey)
+    #         livecallbacks.append(xrfmapTiffexporter)
 
     xrfmap_scanplan = outer_product_scan(xrfdet,
                                          xy_stage.y, ystart, ystop, ynumstep + 1,
