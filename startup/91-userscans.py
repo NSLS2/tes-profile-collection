@@ -1,4 +1,5 @@
 from bluesky.callbacks.broker import (post_run, LiveGrid, LiveTable)
+from bluesky.plans import outer_product_scan
 
 # xrfmapTiffOutputDir = '/home/xf08bm/DATA2017/Comissioning/20170619/'
 # hard-coded for testing now; need to be set to automatically use SAF, today's date, etc.
