@@ -1,4 +1,4 @@
-from bluesky.callbacks.broker import (post_run, LiveGrid)
+from bluesky.callbacks.broker import (post_run, LiveGrid, LiveTable)
 
 xrfmapTiffOutputDir = '/home/xf08bm/DATA2017/Comissioning/20170619/'
 # hard-coded for testing now; need to be set to automatically use SAF, today's date, etc.
@@ -34,7 +34,6 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
 
     livetableitem = [xy_stage.x, xy_stage.y]
     livecallbacks = []
-    callbackTokenList = []
 
     for roi in rois:
         livecallbacks.append(LiveGrid((ynumstep+1, xnumstep+1), roi,
@@ -49,9 +48,7 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
                                     roi + ".tiff")
         # xrfmapTiffexporter = LiveTiffExporter(roi, xrfmapOutputTiffTemplate, db=db)
         xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate, roi)
-        callbackToken = RE.subscribe('all', post_run(xrfmapTiffexporter, db=db))
-        # check to see if this is the right way to have RE here...
-        callbackTokenList.append(callbackToken)
+        livecallbacks.append(xrfmapTiffexporter)
 
     livecallbacks.append(LiveTable(livetableitem))
 
@@ -69,9 +66,7 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
             # commented out for future reference
             xrfmapTiffexporter = RasterMaker(xrfmapOutputTiffTemplate,
                                              sclrDataKey)
-            callbackToken = RE.subscribe('all', post_run(xrfmapTiffexporter, db=db))
-            # check to see if this is the right way to have RE here...
-            callbackTokenList.append(callbackToken)
+            livecallbacks.append(xrfmapTiffexporter)
 
     xrfmap_scanplan = outer_product_scan(xrfdet,
                                          xy_stage.y, ystart, ystop, ynumstep + 1,
@@ -79,8 +74,5 @@ def xrfmap(*, xstart, xnumstep, xstepsize,
     xrfmap_scanplan = bp.subs_wrapper(xrfmap_scanplan, livecallbacks)
 
     scaninfo = yield from xrfmap_scanplan
-
-    for callbackToken in callbackTokenList:
-        RE.unsubscribe(callbackToken)
 
     return xrfmap_scanplan
