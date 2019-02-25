@@ -24,7 +24,8 @@ def _get_v_with_dflt(sig, dflt):
 
 def xy_fly(scan_title, *, dwell_time,
            xstart, xstop, xstep_size,
-           ystart, ystop, ystep_size=None):
+           ystart, ystop, ystep_size=None,
+           xspress3=None):
     """Do a x-y fly scan.
 
     The x-motor is the 'fast' direction.
@@ -96,6 +97,12 @@ def xy_fly(scan_title, *, dwell_time,
     yield from bps.mv(sclr.mcas.prescale, prescale)
     yield from bps.mv(sclr.mcas.nuse, num_xpixels)
 
+    if xspress3 is not None:
+        yield from bps.mov(xs.external_trig, True)
+        yield from mov(xspress3.total_points, num_xpixels)
+        yield from mov(xspress3.hdf5.num_capture, num_xpixels)
+        yield from mov(xspress3.settings.num_images, num_xpixels)
+
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     @bpp.stage_decorator([sclr])
     @bpp.baseline_decorator([mono, xy_fly_stage])
@@ -106,7 +113,8 @@ def xy_fly(scan_title, *, dwell_time,
         yield from bps.mv(xy_fly_stage.x, xstart,
                           xy_fly_stage.y, ystart)
 
-        for y in range(num_ypixels):
+        @bpp.stage_decorator([x for x in [xspress3] if x is not None])
+        def fly_row():
             # go to start of row
             yield from bps.mv(xy_fly_stage.x, xstart,
                               xy_fly_stage.y, ystart + y*ystep_size)
@@ -123,11 +131,14 @@ def xy_fly(scan_title, *, dwell_time,
 
             # arm the struck
             yield from bps.trigger(sclr, group=f'fly_row_{y}')
+            # maybe start the xspress3
+            if xspress3 is not None:
+                yield from bps.trigger(xspress3, group=f'fly_row_{y}')
+            yield from bps.sleep(0.1)
             # fly the motor
             yield from bps.abs_set(xy_fly_stage.x, xstop + a_xstep_size,
                                    group=f'fly_row_{y}')
             yield from bps.wait(group=f'fly_row_{y}')
-
 
             yield from bps.trigger_and_read([xy_fly_stage],
                                             name='row_ends')
@@ -137,7 +148,16 @@ def xy_fly(scan_title, *, dwell_time,
             # read and save the struck
             yield from bps.create(name='primary')
             yield from bps.read(sclr)
+            # and maybe the xspress3
+            if xspress3 is not None:
+                yield from bps.read(xspress3)
             yield from bps.save()
+
+        for y in range(num_ypixels):
+            if xspress3 is not None:
+                yield from bps.mov(xspress3.fly_next, True)
+
+            yield from fly_row()
 
     yield from fly_body()
 
