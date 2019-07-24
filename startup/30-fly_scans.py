@@ -38,15 +38,14 @@ def xy_fly(scan_title, *, dwell_time,
     xstart, xstop : float
        The start and stop values in the fast direction in mm
 
-    num_xpixels : int
-       The number of pixels to collect in the fast direction
+    xstep_size :
+        xstep_size is step of x movement
 
     ystart, ystop : float
        The start and stop values in the slow direction in mm
 
-    num_ypixels: float, optional
-       Number of pixels in the y direction.  If not given, defaults to
-       the same as **num_xpixels**.
+    ystep_size :
+        ystep_size use xstep_size if it isn't passed in
 
     scan_title : str
        Title of scan, required.
