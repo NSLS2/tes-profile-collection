@@ -3,7 +3,7 @@ from ophyd import Signal
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
-
+# Testing VI with Yonghua
 
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
@@ -103,6 +103,7 @@ def xy_fly(scan_title, *, dwell_time,
         yield from mov(xspress3.settings.num_images, num_xpixels)
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
+    @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
     @bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
@@ -168,7 +169,7 @@ E_centers.tolerance = 1e-15
 def E_fly(scan_title, *,
           start, stop,
           step_size,
-          num_scans):
+          num_scans,xspress3=None):
     _validate_motor_limits(mono.energy, start, stop, 'E')
     assert step_size > 0, f'step_size ({step_size}) must be more than 0'
     assert num_scans > 0, f'num_scans ({num_scans}) must be more than 0'
@@ -227,11 +228,19 @@ def E_fly(scan_title, *,
     yield from bps.mv(sclr.mcas.prescale, prescale)
     yield from bps.mv(sclr.mcas.nuse, num_pixels)
 
+    if xspress3 is not None:
+        yield from bps.mov(xs.external_trig, True)
+        yield from mov(xspress3.total_points, num_pixels)
+        yield from mov(xspress3.hdf5.num_capture, num_pixels)
+        yield from mov(xspress3.settings.num_images, num_pixels)
+
     @bpp.reset_positions_decorator([mono.linear])
     @bpp.stage_decorator([sclr])
+    @bpp.stage_decorator([xspress3])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(md={'scan_title': scan_title})
+
     def fly_body():
         yield from bps.trigger_and_read([E_centers], name='energy_bins')
 
@@ -251,6 +260,9 @@ def E_fly(scan_title, *,
 
             # arm the struck
             yield from bps.trigger(sclr, group=f'fly_energy_{y}')
+            if xspress3 is not None:
+                yield from bps.trigger(xspress3, group=f'fly_energy_{y}')
+
             # fly the motor
             yield from bps.abs_set(mono.linear, l_stop + a_l_step_size,
                                    group=f'fly_energy_{y}')
@@ -265,6 +277,19 @@ def E_fly(scan_title, *,
             # read and save the struck
             yield from bps.create(name='primary')
             yield from bps.read(sclr)
+            if xspress3 is not None:
+                yield from bps.read(xspress3)
+            #roi_key = []
+            #roi_key.append(getattr(xs.channel1.rois, 'roi01').value.name)
+            #livetableitem.append(roi_key[0])
+            #livecallbacks.append(LiveTable(livetableitem))
+            #liveploty = roi_key[0]
+            #liveplotx = energy.energy.name
+            #liveplotfig = plt.figure('raw xanes')
+            #livecallbacks.append(LivePlot(liveploty, fig=liveplotfig))
+
             yield from bps.save()
+            #if xspress3 is not None:
+                #yield from bps.mov(xspress3.fly_next, True)
 
     yield from fly_body()
