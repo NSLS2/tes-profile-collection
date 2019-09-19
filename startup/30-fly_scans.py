@@ -3,6 +3,7 @@ from ophyd import Signal
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
+from bluesky.callbacks import LiveTable, LivePlot
 # Testing VI with Yonghua
 
 # TODO could also use check_value, but like the better error message here?
@@ -106,21 +107,21 @@ def xy_fly(scan_title, *, dwell_time,
 
     # TODO make this a message?
     sclr.set_mode('flying')
-
     # poke the struck settings
     yield from bps.mv(sclr.mcas.prescale, prescale)
     yield from bps.mv(sclr.mcas.nuse, num_xpixels)
 
     if xspress3 is not None:
-        yield from bps.mov(xs.external_trig, True)
-        yield from mov(xspress3.total_points, num_xpixels)
-        yield from mov(xspress3.hdf5.num_capture, num_xpixels)
-        yield from mov(xspress3.settings.num_images, num_xpixels)
+        yield from bps.mv(xs.external_trig, True)
+        yield from mv(xspress3.total_points, num_xpixels)
+        yield from mv(xspress3.hdf5.num_capture, num_xpixels)
+        yield from mv(xspress3.settings.num_images, num_xpixels)
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     @bpp.subs_decorator({'all': [roi_livegrid]})
     @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
+    #@bpp.monitor_during_decorator([xspress3])
     @bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(md={'scan_title': scan_title})
@@ -130,6 +131,7 @@ def xy_fly(scan_title, *, dwell_time,
                           xy_fly_stage.y, ystart)
 
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
+
         def fly_row():
             # go to start of row
             yield from bps.mv(xy_fly_stage.x, xstart,
@@ -158,20 +160,21 @@ def xy_fly(scan_title, *, dwell_time,
 
             yield from bps.trigger_and_read([xy_fly_stage],
                                             name='row_ends')
-
             yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
             yield from bps.sleep(.1)
             # read and save the struck
             yield from bps.create(name='primary')
+            #
             yield from bps.read(sclr)
             # and maybe the xspress3
             if xspress3 is not None:
                 yield from bps.read(xspress3)
             yield from bps.save()
 
+
         for y in range(num_ypixels):
             if xspress3 is not None:
-                yield from bps.mov(xspress3.fly_next, True)
+                yield from bps.mv(xspress3.fly_next, True)
 
             yield from fly_row()
 
@@ -245,23 +248,38 @@ def E_fly(scan_title, *,
     yield from bps.mv(sclr.mcas.nuse, num_pixels)
 
     if xspress3 is not None:
-        yield from bps.mov(xs.external_trig, True)
-        yield from mov(xspress3.total_points, num_pixels)
-        yield from mov(xspress3.hdf5.num_capture, num_pixels)
-        yield from mov(xspress3.settings.num_images, num_pixels)
+        yield from bps.mv(xs.external_trig, True)
+        yield from mv(xspress3.total_points, num_pixels)
+        yield from mv(xspress3.hdf5.num_capture, num_pixels)
+        yield from mv(xspress3.settings.num_images, num_pixels)
 
     @bpp.reset_positions_decorator([mono.linear])
     @bpp.stage_decorator([sclr])
-    @bpp.stage_decorator([xspress3])
+    #@bpp.stage_decorator([xspress3])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(md={'scan_title': scan_title})
 
     def fly_body():
         yield from bps.trigger_and_read([E_centers], name='energy_bins')
-
-        for y in range(num_scans):
+        @bpp.stage_decorator([x for x in [xspress3] if x is not None])
+        @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
+        def fly_once():
+        #for y in range(num_scans):
             # go to start of row
+
+            roi_key = []
+            livetableitem = []
+            livecallbacks = []
+            roi_name = 'roi{:02}'.format(1)
+            roi_key.append(getattr(xs.channel1.rois, roi_name).value.name)
+            livetableitem.append(roi_key[0])
+            livecallbacks.append(LiveTable(livetableitem))
+            liveploty = roi_key[0]
+            liveplotx = E_centers
+            liveplotfig = plt.figure('raw xanes')
+            livecallbacks.append(LivePlot(liveploty, x=liveplotx, fig=liveplotfig))
+
             yield from bps.mv(mono.linear, l_start)
 
             # set the fly speed
@@ -295,17 +313,12 @@ def E_fly(scan_title, *,
             yield from bps.read(sclr)
             if xspress3 is not None:
                 yield from bps.read(xspress3)
-            #roi_key = []
-            #roi_key.append(getattr(xs.channel1.rois, 'roi01').value.name)
-            #livetableitem.append(roi_key[0])
-            #livecallbacks.append(LiveTable(livetableitem))
-            #liveploty = roi_key[0]
-            #liveplotx = energy.energy.name
-            #liveplotfig = plt.figure('raw xanes')
-            #livecallbacks.append(LivePlot(liveploty, fig=liveplotfig))
 
             yield from bps.save()
-            #if xspress3 is not None:
-                #yield from bps.mov(xspress3.fly_next, True)
+
+        for y in range(num_scans):
+            if xspress3 is not None:
+                yield from bps.mv(xspress3.fly_next, True)
+            yield from fly_once()
 
     yield from fly_body()
