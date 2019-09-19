@@ -220,8 +220,8 @@ xs = TESXspress3Detector('XF:08BM-ES{Xsp:1}:', name='xs')
 xs.channel1.rois.read_attrs = ['roi{:02}'.format(j) for j in [1, 2, 3, 4]]
 xs.channel2.rois.read_attrs = ['roi{:02}'.format(j) for j in [1, 2, 3, 4]]
 xs.hdf5.num_extra_dims.put(0)
-xs.channel2.vis_enabled.put(1)
-xs.settings.num_channels.put(3)
+xs.channel1.vis_enabled.put(1)
+xs.settings.num_channels.put(1)
 
 xs.settings.configuration_attrs = ['acquire_period',
 			'acquire_time',
