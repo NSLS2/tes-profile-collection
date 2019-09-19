@@ -75,7 +75,7 @@ def xy_fly(scan_title, *, dwell_time,
     num_ypixels = int(np.floor((ystop - ystart) / a_ystep_size))
 
     # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
-    roi_livegrid_key = xs.channel1.rois.roi01.value
+    roi_livegrid_key = xs.channel1.rois.roi01.value.name
     fig = plt.figure('xs')
     fig.clf()
     roi_livegrid = LiveGrid(
@@ -214,6 +214,8 @@ def E_fly(scan_title, *,
             )
         )
 
+
+
     # get limits in linear parameters
     l_start, l_stop = _energy_to_linear([start, stop])
     l_step_size = np.diff(_energy_to_linear([start, start + step_size]))
@@ -243,6 +245,24 @@ def E_fly(scan_title, *,
     # TODO make this a message?
     sclr.set_mode('flying')
 
+    # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
+    roi_livegrid_key = xs.channel1.rois.roi01.value.name
+    fig = plt.figure('xs')
+    fig.clf()
+    roi_livegrid = LivePlot(
+        y=roi_livegrid_key,
+        x=mono.energy.name,
+        #clim=None, cmap='inferno',
+        #xlabel='energy', ylabel='ux',
+        #extent=[xstart, xstop, ystart, ystop],
+        #x_positive='right', y_positive='down',
+        ax=fig.gca()
+    )
+
+
+
+
+
     # poke the struck settings
     yield from bps.mv(sclr.mcas.prescale, prescale)
     yield from bps.mv(sclr.mcas.nuse, num_pixels)
@@ -259,26 +279,17 @@ def E_fly(scan_title, *,
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(md={'scan_title': scan_title})
+    @bpp.subs_decorator({'all': [roi_livegrid]})
+    @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
 
     def fly_body():
         yield from bps.trigger_and_read([E_centers], name='energy_bins')
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
-        @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
+
         def fly_once():
         #for y in range(num_scans):
             # go to start of row
 
-            roi_key = []
-            livetableitem = []
-            livecallbacks = []
-            roi_name = 'roi{:02}'.format(1)
-            roi_key.append(getattr(xs.channel1.rois, roi_name).value.name)
-            livetableitem.append(roi_key[0])
-            livecallbacks.append(LiveTable(livetableitem))
-            liveploty = roi_key[0]
-            liveplotx = E_centers
-            liveplotfig = plt.figure('raw xanes')
-            livecallbacks.append(LivePlot(liveploty, x=liveplotx, fig=liveplotfig))
 
             yield from bps.mv(mono.linear, l_start)
 
