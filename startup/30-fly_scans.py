@@ -73,6 +73,21 @@ def xy_fly(scan_title, *, dwell_time,
     num_xpixels = int(np.floor((xstop - xstart) / a_xstep_size))
     num_ypixels = int(np.floor((ystop - ystart) / a_ystep_size))
 
+    # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
+    roi_livegrid_key = xs.channel1.rois.roi01.value
+    fig = plt.figure('xs')
+    fig.clf()
+    roi_livegrid = LiveGrid(
+        ## SRX original (ynumstep+1, xnumstep+1),
+        (num_ypixels, num_xpixels),
+        roi_livegrid_key,
+        clim=None, cmap='inferno',
+        xlabel='x (mm)', ylabel='y (mm)',
+        extent=[xstart, xstop, ystart, ystop],
+        x_positive='right', y_positive='down',
+        ax=fig.gca()
+    )
+
     flyspeed = a_xstep_size / dwell_time  # this is in mm/s
 
     try:
@@ -103,6 +118,7 @@ def xy_fly(scan_title, *, dwell_time,
         yield from mov(xspress3.settings.num_images, num_xpixels)
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
+    @bpp.subs_decorator({'all': [roi_livegrid]})
     @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
     @bpp.baseline_decorator([mono, xy_fly_stage])
