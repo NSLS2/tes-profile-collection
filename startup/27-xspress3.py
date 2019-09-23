@@ -170,15 +170,16 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     # channel8 = C(Xspress3Channel, 'C8_', channel_num=8)
 
     hdf5 = Cpt(Xspress3FileStoreFlyable, 'HDF5:',
-               read_path_template='/nsls2/xf08bm/XF08BM/XSPRESS3/%Y/%m/%d/',
-               write_path_template='/tmp/',
-               root='/nsls2/xf08bm/XF08BM')
+               read_path_template='/nsls2/xf08bm/data/xspress3/%Y/%m/%d/',
+               write_path_template='/DATA/%Y/%m/%d/',
+               root='/nsls2/xf08bm/data/')
 
     # this is used as a latch to put the xspress3 into 'bulk' mode
     # for fly scanning.  Do this is a signal (rather than as a local variable
     # or as a method so we can modify this as part of a plan
     fly_next = Cpt(Signal, value=False)
 
+    energy_calibration = C(Signal, value=10.0, kind='config')
 
     def __init__(self, prefix, *, configuration_attrs=None, read_attrs=None,
                  **kwargs):
@@ -243,7 +244,7 @@ xs.settings.configuration_attrs = ['acquire_period',
 			'num_frames_config',
 			'run_flags',
 			'trigger_signal']
-
+xs.energy_calibration.kind = 'config'
 
 # This is necessary for when the ioc restarts
 # we have to trigger one image for the hdf5 plugin to work correclty
