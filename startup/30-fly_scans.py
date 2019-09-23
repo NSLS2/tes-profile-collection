@@ -4,6 +4,7 @@ import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
 from bluesky.callbacks import LiveTable, LivePlot
+import h5py
 # Testing VI with Yonghua
 
 # TODO could also use check_value, but like the better error message here?
@@ -245,23 +246,24 @@ def E_fly(scan_title, *,
     # TODO make this a message?
     sclr.set_mode('flying')
 
+
     # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
+
     roi_livegrid_key = xs.channel1.rois.roi01.value.name
-    fig = plt.figure('xs')
-    fig.clf()
+    #fig = plt.figure('xs')
+    #fig.clf()
     roi_livegrid = LivePlot(
-        y=roi_livegrid_key,
-        x=mono.energy.name,
+        ## SRX original (ynumstep+1, xnumstep+1),
+
+        y = roi_livegrid_key
+        #, x =  mono.energy.name
         #clim=None, cmap='inferno',
-        #xlabel='energy', ylabel='ux',
-        #extent=[xstart, xstop, ystart, ystop],
+        #xlabel='E (eV)', ylabel='ux',
+        #extent=[start, stop, 0, num_scans],
         #x_positive='right', y_positive='down',
-        ax=fig.gca()
+        #ax=fig.gca()
+        #epoch= {'run', 'unix'}
     )
-
-
-
-
 
     # poke the struck settings
     yield from bps.mv(sclr.mcas.prescale, prescale)
@@ -275,22 +277,23 @@ def E_fly(scan_title, *,
 
     @bpp.reset_positions_decorator([mono.linear])
     @bpp.stage_decorator([sclr])
+    @bpp.subs_decorator({'all': [roi_livegrid]})
+    @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     #@bpp.stage_decorator([xspress3])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(md={'scan_title': scan_title})
-    @bpp.subs_decorator({'all': [roi_livegrid]})
-    @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
+
 
     def fly_body():
         yield from bps.trigger_and_read([E_centers], name='energy_bins')
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
 
-        def fly_once():
+        def fly_once(y):
         #for y in range(num_scans):
             # go to start of row
 
-
+            yield from bps.checkpoint()
             yield from bps.mv(mono.linear, l_start)
 
             # set the fly speed
@@ -327,9 +330,9 @@ def E_fly(scan_title, *,
 
             yield from bps.save()
 
-        for y in range(num_scans):
+        for scan_iter in range(num_scans):
             if xspress3 is not None:
                 yield from bps.mv(xspress3.fly_next, True)
-            yield from fly_once()
+            yield from fly_once(scan_iter)
 
     yield from fly_body()
