@@ -57,10 +57,16 @@ class BulkXSPRESS(HandlerBase):
     HANDLER_NAME = "XPS3_FLY"
 
     def __init__(self, resource_fn):
-        self._handle = h5py.File(resource_fn, "r")
+        try:
+            self._handle = h5py.File(resource_fn, "r")
+        except OSError:
+            self._handle = None
 
     def __call__(self):
-        return self._handle["entry/instrument/detector/data"][:]
+        if self._handle is None:
+            return None
+        else:
+            return self._handle["entry/instrument/detector/data"][:]
 
 
 db.reg.register_handler(BulkXSPRESS.HANDLER_NAME, BulkXSPRESS, overwrite=True)
