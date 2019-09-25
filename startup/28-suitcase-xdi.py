@@ -21,7 +21,7 @@ from pprint import pprint
 ##del get_versions
 
 
-def export(gen, directory, file_prefix="{uid}-", **kwargs):
+def export(gen, directory, file_prefix="{scan_title}-", xdi_file_template=None, transforms=None, **kwargs):
     """
     Export a stream of documents to xdi.
 
@@ -84,7 +84,7 @@ def export(gen, directory, file_prefix="{uid}-", **kwargs):
 
     >>> export(gen, '/path/to/my_usb_stick')
     """
-    with Serializer(directory, file_prefix, **kwargs) as serializer:
+    with Serializer(directory, file_prefix, xdi_file_template=xdi_file_template, transforms=transforms, **kwargs) as serializer:
         for item in gen:
             serializer(*item)
 
@@ -133,9 +133,14 @@ class Serializer(event_model.DocumentRouter):
         whatever resources are produced by the Manager)
     """
 
-    def __init__(self, directory, file_prefix="{uid}-", transforms=None, **kwargs):
+    def __init__(self, directory, file_prefix="{scan_title}-", xdi_file_template=None, transforms=None, **kwargs):
 
         self._file_prefix = file_prefix
+        if xdi_file_template is None:
+            self._xdi_file_template = None
+        else:
+            self._xdi_file_template = toml.loads(xdi_file_template)
+
         if transforms is None:
             self._transforms = {}
         else:
@@ -144,7 +149,6 @@ class Serializer(event_model.DocumentRouter):
         self._kwargs = kwargs
         self._templated_file_prefix = ""  # set when we get a 'start' document
         self._event_descriptor_uids = set()
-        self._xdi_file_template = None
         self._column_data = OrderedDict()
         self._header_line_buffer = OrderedDict()
         self.columns = None
@@ -228,30 +232,24 @@ class Serializer(event_model.DocumentRouter):
     #
     #   my_function(doc, fil
     def start(self, doc):
-        if self._xdi_file_template is not None:
-            raise Exception("")
+        #if self._xdi_file_template is not None:
+        #    raise Exception("")
 
-        if "config" in doc["md"]["suitcase-xdi"]:
-            self._xdi_file_template = toml.loads(
-                doc["md"]["suitcase-xdi"]["config"], _dict=OrderedDict
-            )
-        elif "config-file-path" in doc["md"]["suitcase-xdi"]:
-            self._xdi_file_template = toml.load(
-                doc["md"]["suitcase-xdi"]["config-file-path"], _dict=OrderedDict
-            )
-        else:
-            raise Exception(
-                "configuration must be specified as a file in md["
-                "suitcase-xdi"
-                "]["
-                "config-file-path"
-                "]"
-                "or as a string in md["
-                "suitcase-xdi"
-                "]["
-                "config"
-                "]"
-            )
+        if self._xdi_file_template is None:
+            if "config" in doc["md"]["suitcase-xdi"]:
+                print(doc["md"]["suitcase-xdi"]["config"])
+                self._xdi_file_template = toml.loads(
+                    doc["md"]["suitcase-xdi"]["config"], _dict=OrderedDict
+                )
+            elif "config-file-path" in doc["md"]["suitcase-xdi"]:
+                self._xdi_file_template = toml.load(
+                    doc["md"]["suitcase-xdi"]["config-file-path"], _dict=OrderedDict
+                )
+            else:
+                raise Exception(
+                    "configuration must be specified as a file in md[suitcase-xdi][config-file-path]"
+                    "or as a string in md[suitcase-xdi][config]"
+                )
 
         """
         Use the configuration information to build an ordered dictionary of header fields, eg
@@ -274,12 +272,6 @@ class Serializer(event_model.DocumentRouter):
         }
         """
 
-        # initialize the column data dictionary to None for each column
-        self._initialize_column_data_dict()
-
-        # initialize the header line buffer to "None" for every header line
-        ###self._initialize_header_line_buffer(start_doc=doc)
-
         # extract header information from the start document
         self._update_header_lines_from_doc(doc_name="start", doc=doc)
 
@@ -287,8 +279,8 @@ class Serializer(event_model.DocumentRouter):
         # As in, '{uid}' -> 'c1790369-e4b2-46c7-a294-7abfa239691a'
         # or 'my-data-from-{plan-name}' -> 'my-data-from-scan'
         self._templated_file_prefix = self._file_prefix.format(**doc)
-        filename = f"{self._templated_file_prefix}.xdi"
-        self._output_file = self._manager.open("stream_data", filename, "xt")
+        ##filename = f"{self._templated_file_prefix}.xdi"
+        ##self._output_file = self._manager.open("stream_data", filename, "xt")
 
         self.columns = tuple([v for k, v in self._xdi_file_template["columns"].items()])
         if len(self.columns) == 0:
@@ -298,7 +290,7 @@ class Serializer(event_model.DocumentRouter):
 
         # write the header information we have now
         # the full header will be written when the stop document arrives
-        self._write_header()
+        ##self._write_header()
 
     def descriptor(self, doc):
         """
@@ -337,7 +329,10 @@ class Serializer(event_model.DocumentRouter):
                 f"have not seen a descriptor with data keys {self.export_data_keys} yet"
             )
         elif doc["descriptor"] in self._event_descriptor_uids:
+            # initialize the column data dictionary to None for each column
+            self._initialize_column_data_dict()
 
+            self._update_header_lines_from_doc(doc_name="event_page", doc=doc)
             # keep a dict of columns of data like:
             #  {
             #    "energy" : array...
@@ -346,7 +341,6 @@ class Serializer(event_model.DocumentRouter):
             #  }
             for column in self.columns:
                 data_key = column["data_key"]
-                print(column)
                 # expect to find an array for the data_key
                 if self._column_data[data_key] is None and data_key in doc["data"]:
                     if "transform" in column.keys():
@@ -363,31 +357,43 @@ class Serializer(event_model.DocumentRouter):
                         else:
                             self._column_data[data_key] = (event_data, )
 
+            filename = f"{self._templated_file_prefix}" + doc['seq_num'] + ".xdi"
+            with self._manager.open("stream_data", filename, "xt") as xdi_file:
+                self._write_header(xdi_file)
+                # self._column_data_values looks like
+                # [[...], [...], [...]]
+                for row_data in zip_longest(
+                        *self._column_data.values(),
+                        fillvalue="NA"
+                ):
+                    xdi_file.write("\t".join((str(d) for d in row_data)))
+                    xdi_file.write("\n")
         else:
             # this event has no data to export
             pass
 
     def stop(self, doc):
-        self._update_header_lines_from_doc(doc_name="stop", doc=doc)
-        self._manager.close()
-        for artifact_label, artifacts in self._manager.artifacts.items():
-            for artifact in artifacts:
-                print("finishing artifact {}".format(artifact))
-                temp_artifact_path = artifact.with_suffix(".updating")
-                print("creating {}".format(temp_artifact_path))
-                with artifact.open() as a, temp_artifact_path.open("wt") as t:
-                    # write a fresh header
-                    self._write_header(output_file=t)
-                    # write the data
-                    for row_data in zip_longest(
-                        *self._column_data.values(),
-                        fillvalue="NA"
-                    ):
-                        t.write("\t".join((str(d) for d in row_data)))
-                        t.write("\n")
-
-                artifact.unlink()
-                temp_artifact_path.rename(artifact)
+        pass
+        # self._update_header_lines_from_doc(doc_name="stop", doc=doc)
+        # self._manager.close()
+        # for artifact_label, artifacts in self._manager.artifacts.items():
+        #     for artifact in artifacts:
+        #         print("finishing artifact {}".format(artifact))
+        #         temp_artifact_path = artifact.with_suffix(".updating")
+        #         print("creating {}".format(temp_artifact_path))
+        #         with artifact.open() as a, temp_artifact_path.open("wt") as t:
+        #             # write a fresh header
+        #             self._write_header(output_file=t)
+        #             # write the data
+        #             for row_data in zip_longest(
+        #                 *self._column_data.values(),
+        #                 fillvalue="NA"
+        #             ):
+        #                 t.write("\t".join((str(d) for d in row_data)))
+        #                 t.write("\n")
+        #
+        #         artifact.unlink()
+        #         temp_artifact_path.rename(artifact)
 
     def _initialize_column_data_dict(self):
         for xdi_key, xdi_value in self._xdi_file_template["columns"].items():
@@ -410,7 +416,7 @@ class Serializer(event_model.DocumentRouter):
         becomes
 
         {
-          "XDI": "# XDI/1.0 Bluesky",
+          "XDI": None,
           "Column.1": None,
           "Element.symbol": None,
           ...
