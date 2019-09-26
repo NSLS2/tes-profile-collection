@@ -29,8 +29,9 @@ class ScalerMCA(Device):
         erasestart = Co(EpicsSignal, 'EraseStart', string=True)
 
     def stage(self):
-        super().stage()
+        staged_cmpts = super().stage()
         self.eraseall.put('Erase')
+        return staged_cmpts
 
     def stop(self):
         self.stopall.put('Stop')
@@ -89,26 +90,31 @@ class Scaler(Device):
             raise ValueError
 
     def stage(self):
-        self.match_names()
         if self._mode == 'counting':
-            return self.cnts.stage()
+            staged_cmpts = self.cnts.stage()
         elif self._mode == 'flying':
-            return self.mcas.stage()
+            staged_cmpts = self.mcas.stage()
         else:
             raise ValueError
+        self.match_names()
+        return staged_cmpts
 
     def unstage(self):
         if self._mode == 'counting':
-            return self.cnts.unstage()
+            unstaged_cmpts = self.cnts.unstage()
         elif self._mode == 'flying':
-            return self.mcas.unstage()
+            unstaged_cmpts = self.mcas.unstage()
         else:
             raise ValueError
-
+        self.match_names()
+        return unstaged_cmpts
 
 sclr = Scaler('XF:08BM-ES:1{Sclr:1}', name='sclr')
 sclr.cnts.channels.read_attrs = [f"chan{j:02d}" for j in range(1, 21)]
 sclr.mcas.channels.read_attrs = [f"mca{j:02d}" for j in range(1, 21)]
 sclr.mcas.stage_sigs['channel_advance'] = 'External'
+sclr.cnts.stage_sigs[sclr.cnts.channels.chan01.chname] = "dwell_time"
+sclr.mcas.stage_sigs[sclr.cnts.channels.chan01.chname] = "dwell_time"
+
 sclr.match_names(20)
 sclr.set_mode('counting')
