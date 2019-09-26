@@ -12,19 +12,19 @@ class RasterMaker(CallbackBase):
         self.fname = None
 
     def start(self, doc):
-        if 'shape' in doc:
-            self.data = np.ones(doc['shape']) * np.nan
+        if "shape" in doc:
+            self.data = np.ones(doc["shape"]) * np.nan
             self.fname = self.fname_template.format(start=doc)
 
     def descriptor(self, doc):
-        if self.field in doc['data_keys']:
-            self.decs = doc['uid']
+        if self.field in doc["data_keys"]:
+            self.decs = doc["uid"]
 
     def event(self, doc):
-        if self.desc != doc['descriptor']:
+        if self.desc != doc["descriptor"]:
             return
-        indx = np.unravel_index(doc['seq_num'], self.shape)
-        self.data[indx] = doc['data'][self.field]
+        indx = np.unravel_index(doc["seq_num"], self.shape)
+        self.data[indx] = doc["data"][self.field]
 
     def stop(self, doc):
         tifffile.imsave(self.fname, self.data)
@@ -32,8 +32,10 @@ class RasterMaker(CallbackBase):
         self.desc = None
         self.fname = None
 
+
 from itertools import count as _it_count
 import matplotlib.pyplot as plt
+
 
 class EScanPlot(CallbackBase):
     def __init__(self):
@@ -47,32 +49,36 @@ class EScanPlot(CallbackBase):
     def start(self, doc):
         self.fig = plt.figure(f"scan: {doc['scan_id']}")
         self.ax = self.fig.gca()
-        self.ax.set_xlabel('Mono Energy (eV)')
-        self.ax.set_ylabel('ROI1')
+        self.ax.set_xlabel("Mono Energy (eV)")
+        self.ax.set_ylabel("ROI1")
         self.energy_bins = None
         self._current_data = None
         self.current_line = None
 
     def descriptor(self, doc):
-        print(doc['name'])
-        if doc['name'] in ('row_ends', 'energy_bins', 'xs_channel1_rois_roi01_value_monitor'):
-            self.known_desc[doc['uid']] = doc
+        print(doc["name"])
+        if doc["name"] in (
+            "row_ends",
+            "energy_bins",
+            "xs_channel1_rois_roi01_value_monitor",
+        ):
+            self.known_desc[doc["uid"]] = doc
 
     def event(self, doc):
-        desc = self.known_desc.get(doc['descriptor'], None)
+        desc = self.known_desc.get(doc["descriptor"], None)
         if desc is None:
             return
 
-        if desc['name'] == 'row_ends':
+        if desc["name"] == "row_ends":
             self.index = _it_count()
             return
 
-        if desc['name'] == 'energy_bins':
-            self.energy_bins = doc['data']['E_centers']
+        if desc["name"] == "energy_bins":
+            self.energy_bins = doc["data"]["E_centers"]
             self.ax.set_xlim(self.energy_bins[0], self.energy_bins[-1])
             return
 
-        if desc['name'] == 'xs_channel1_rois_roi01_value_monitor':
+        if desc["name"] == "xs_channel1_rois_roi01_value_monitor":
             if self.energy_bins is None:
                 return
             bin = next(self.index)
@@ -80,12 +86,8 @@ class EScanPlot(CallbackBase):
                 self._current_data = np.ones_like(self.energy_bins) * np.nan
 
                 self.current_line, = self.ax.plot(self.energy_bins, self._current_data)
-            self._current_data[bin] = doc['data']['xs_channel1_rois_roi01_value']
+            self._current_data[bin] = doc["data"]["xs_channel1_rois_roi01_value"]
             self.current_line.set_ydata(self._current_data)
             self.ax.relim()
             self.ax.autoscale()
             self.fig.canvas.draw_idle()
-
-
-
-

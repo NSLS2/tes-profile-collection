@@ -342,9 +342,9 @@ class Serializer(event_model.DocumentRouter):
 
         # get the stream name for this document
         stream_name = self._uid_to_descriptor[doc["descriptor"]]["name"]
-        #print(
+        # print(
         #    f"event-page from stream {stream_name} with descriptor uid {doc['descriptor']}"
-        #)
+        # )
 
         # assumption: the primary stream event page arrives
         # between corresponding row_end stream event pages
@@ -426,8 +426,8 @@ class Serializer(event_model.DocumentRouter):
                 xdi_file.write("\n")
 
         # don't use this information again
-        #self._column_data.clear()
-        #self._initialize_column_data_dict()
+        # self._column_data.clear()
+        # self._initialize_column_data_dict()
         # self._event_page_header_line_buffer.clear()
 
     def _update_data_columns_from_doc(self, doc):
@@ -441,7 +441,7 @@ class Serializer(event_model.DocumentRouter):
             data_key = column["data_key"]
             # expect to find an array for the data_key
             if data_key in doc["data"]:
-            #if self._column_data[data_key] is None and data_key in doc["data"]:
+                # if self._column_data[data_key] is None and data_key in doc["data"]:
                 print(f"getting {data_key} from doc {doc['descriptor']}")
                 if "transform" in column.keys():
                     print("*************** applying a transform!")
@@ -462,7 +462,7 @@ class Serializer(event_model.DocumentRouter):
 
     def _initialize_column_data_dict(self):
         print("_initialize_column_data_dict")
-        #self._column_data = dict()
+        # self._column_data = dict()
         for xdi_key, xdi_value in self._xdi_file_template["columns"].items():
             self._column_data[xdi_value["data_key"]] = None
 

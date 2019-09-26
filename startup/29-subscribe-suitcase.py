@@ -3,10 +3,7 @@ import numpy as np
 from event_model import RunRouter
 
 
-element_to_roi = {
-    "s": (222, 240),
-    "p": (222, 240)
-}
+element_to_roi = {"s": (222, 240), "p": (222, 240)}
 
 
 suitcase_config = """\
@@ -40,12 +37,15 @@ def serializer_factory(name, start_doc):
     element = start_doc["user_input"]["element"]
     roi = element_to_roi[element.lower()]
 
-    suitcase_transforms = {
-        "roi1": partial(roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])
-    }
+    suitcase_transforms = {"roi1": partial(roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])}
 
-    serializer = Serializer(directory="xdi", xdi_file_template=suitcase_config, transforms=suitcase_transforms)
+    serializer = Serializer(
+        directory="xdi",
+        xdi_file_template=suitcase_config,
+        transforms=suitcase_transforms,
+    )
     return [serializer], []
+
 
 ##RE.subscribe(RunRouter([serializer_factory]))
 
@@ -56,7 +56,7 @@ def xdi_export(db_header):
     """
     s, _ = serializer_factory("start", db_header.start)
     serializer = s[0]
-    #with serializer(directory, file_prefix, xdi_file_template=xdi_file_template, transforms=transforms, **kwargs) as serializer:
+    # with serializer(directory, file_prefix, xdi_file_template=xdi_file_template, transforms=transforms, **kwargs) as serializer:
     for item in db_header.documents(fill=True):
         serializer(*item)
     serializer.close()
@@ -64,7 +64,11 @@ def xdi_export(db_header):
     return serializer.artifacts
 
 
-xdi_meta_data = {"Element_symbol": "???", "Element_edge": "???", "Mono_d_spacing": "???"}
+xdi_meta_data = {
+    "Element_symbol": "???",
+    "Element_edge": "???",
+    "Mono_d_spacing": "???",
+}
 
 nx_meta_data = {
     "Source": {"name": "NSLS-II"},
@@ -73,4 +77,4 @@ nx_meta_data = {
 }
 
 # not like this
-#RE.md.update({"md": {"NX": nx_meta_data, "XDI": xdi_meta_data}})
+# RE.md.update({"md": {"NX": nx_meta_data, "XDI": xdi_meta_data}})
