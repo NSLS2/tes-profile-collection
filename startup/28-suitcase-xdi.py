@@ -15,13 +15,21 @@ import event_model
 import suitcase.utils
 
 from pprint import pprint
+
 ##from ._version import get_versions
 
 ##__version__ = get_versions()["version"]
 ##del get_versions
 
 
-def export(gen, directory, file_prefix="{scan_title}-", xdi_file_template=None, transforms=None, **kwargs):
+def export(
+    gen,
+    directory,
+    file_prefix="{scan_title}-",
+    xdi_file_template=None,
+    transforms=None,
+    **kwargs,
+):
     """
     Export a stream of documents to xdi.
 
@@ -84,7 +92,13 @@ def export(gen, directory, file_prefix="{scan_title}-", xdi_file_template=None, 
 
     >>> export(gen, '/path/to/my_usb_stick')
     """
-    with Serializer(directory, file_prefix, xdi_file_template=xdi_file_template, transforms=transforms, **kwargs) as serializer:
+    with Serializer(
+        directory,
+        file_prefix,
+        xdi_file_template=xdi_file_template,
+        transforms=transforms,
+        **kwargs,
+    ) as serializer:
         for item in gen:
             serializer(*item)
 
@@ -133,26 +147,7 @@ class Serializer(event_model.DocumentRouter):
         whatever resources are produced by the Manager)
     """
 
-    def __init__(self, directory, file_prefix="{scan_title}-", xdi_file_template=None, transforms=None, **kwargs):
-
-        self._file_prefix = file_prefix
-        if xdi_file_template is None:
-            self._xdi_file_template = None
-        else:
-            self._xdi_file_template = toml.loads(xdi_file_template)
-
-        if transforms is None:
-            self._transforms = {}
-        else:
-            self._transforms = transforms
-
-        self._kwargs = kwargs
-        self._templated_file_prefix = ""  # set when we get a 'start' document
-        self._event_descriptor_uids = set()
-        self._column_data = OrderedDict()
-        self._header_line_buffer = OrderedDict()
-        self.columns = None
-        self.export_data_keys = None
+    def __init__(self, directory, file_prefix="{scan_title}-", **kwargs):
 
         if isinstance(directory, (str, Path)):
             # The user has given us a filepath; they want files.
@@ -162,16 +157,45 @@ class Serializer(event_model.DocumentRouter):
             # The user has given us their own Manager instance. Use that.
             self._manager = directory
 
-        # Finally, we usually need some state related to stashing file
-        # handles/buffers. For a Serializer that only needs *one* file
-        # this may be:
-        #
-        # self._output_file = None
-        #
-        # For a Serializer that writes a separate file per stream:
-        #
-        # self._files = {}
-        self._output_file = None
+        self._file_prefix = file_prefix
+
+        if "xdi_file_template" not in kwargs or kwargs["xdi_file_template"] is None:
+            self._xdi_file_template = None
+        else:
+            self._xdi_file_template = toml.loads(kwargs["xdi_file_template"])
+
+        if "transforms" not in kwargs or kwargs["transforms"] is None:
+            self._transforms = dict()
+        else:
+            self._transforms = kwargs["transforms"]
+
+        self._kwargs = kwargs  # needed?
+        self._templated_file_prefix = None  # set when we get a 'start' document
+
+        self._uid_to_descriptor = dict()
+
+        # when writing files header information will be taken from self._header_line_buffer
+        # and self._event_page_header_line_buffer. Header lines in the former will be the
+        # same across all output files. Header lines in the latter will vary across output
+        # files.
+        self._header_line_buffer = dict()
+        # self._event_page_header_line_buffer = None
+
+        # use list self._row_end_docs to discriminate a "begin row" event_page from
+        # an "end row" event page
+        self._row_end_docs = list()
+
+        # use seq_num from the primary stream event_pages to determine the scan number
+        self._scan_number = None
+
+        # the column data for each output file will be found in event_pages
+        # but that file can not be written until a later event_page has been
+        # handled, so self._column_data will hold it until the serializer
+        # is ready to write
+        self._column_data = dict()
+
+        self.columns = None
+        self.export_data_keys = None
 
     @property
     def artifacts(self):
@@ -232,8 +256,6 @@ class Serializer(event_model.DocumentRouter):
     #
     #   my_function(doc, fil
     def start(self, doc):
-        #if self._xdi_file_template is not None:
-        #    raise Exception("")
 
         if self._xdi_file_template is None:
             if "config" in doc["md"]["suitcase-xdi"]:
@@ -250,7 +272,9 @@ class Serializer(event_model.DocumentRouter):
                     "configuration must be specified as a file in md[suitcase-xdi][config-file-path]"
                     "or as a string in md[suitcase-xdi][config]"
                 )
-
+        else:
+            # XDI file configuration was provided to __init__
+            pass
         """
         Use the configuration information to build an ordered dictionary of header fields, eg
         {
@@ -272,25 +296,22 @@ class Serializer(event_model.DocumentRouter):
         }
         """
 
+        self._initialize_column_data_dict()
         # extract header information from the start document
-        self._update_header_lines_from_doc(doc_name="start", doc=doc)
+        self._update_header_lines_from_doc(
+            doc_name="start", doc=doc, header_line_buffer=self._header_line_buffer
+        )
 
         # Fill in the file_prefix with the contents of the RunStart document.
         # As in, '{uid}' -> 'c1790369-e4b2-46c7-a294-7abfa239691a'
         # or 'my-data-from-{plan-name}' -> 'my-data-from-scan'
         self._templated_file_prefix = self._file_prefix.format(**doc)
-        ##filename = f"{self._templated_file_prefix}.xdi"
-        ##self._output_file = self._manager.open("stream_data", filename, "xt")
 
         self.columns = tuple([v for k, v in self._xdi_file_template["columns"].items()])
         if len(self.columns) == 0:
             raise ValueError("found no Columns")
 
         self.export_data_keys = tuple({c["data_key"] for c in self.columns})
-
-        # write the header information we have now
-        # the full header will be written when the stop document arrives
-        ##self._write_header()
 
     def descriptor(self, doc):
         """
@@ -302,114 +323,161 @@ class Serializer(event_model.DocumentRouter):
         doc : dict
             an event-descriptor document
         """
-        descriptor_data_keys = doc["data_keys"]
-        print("*************export data keys")
-        pprint(self.export_data_keys)
-        print("*************descriptor data keys")
-        pprint(descriptor_data_keys.keys())
-        data_keys_intersection = set(self.export_data_keys).intersection(descriptor_data_keys.keys())
-        pprint(data_keys_intersection)
 
-        if len(data_keys_intersection) > 0:
-        ##if set(self.export_data_keys).issubset(descriptor_data_keys.keys()):
-            self._event_descriptor_uids.add(doc["uid"])
-        else:
-            ...
-
-        self._update_header_lines_from_doc(doc_name="descriptor", doc=doc)
+        self._uid_to_descriptor[doc["uid"]] = doc
+        print(f"got a descriptor for stream {doc['name']} with uid {doc['uid']}")
+        self._update_header_lines_from_doc(
+            doc_name="descriptor", doc=doc, header_line_buffer=self._header_line_buffer
+        )
 
     def event_page(self, doc):
-        # There are other representations of Event data -- 'event' and
-        # 'bulk_events' (deprecated). But that does not concern us because
-        # DocumentRouter will convert these representations to 'event_page'
-        # then route them through here.
+        """
+        Maybe write a file. All data required for a file might be available.
 
-        if len(self._event_descriptor_uids) == 0:
-            print(
-                f"have not seen a descriptor with data keys {self.export_data_keys} yet"
-            )
-        elif doc["descriptor"] in self._event_descriptor_uids:
-            # initialize the column data dictionary to None for each column
-            self._initialize_column_data_dict()
+        Parameters
+        ----------
+        doc : dict
+            an event-page document
+        """
 
-            self._update_header_lines_from_doc(doc_name="event_page", doc=doc)
-            # keep a dict of columns of data like:
-            #  {
-            #    "energy" : array...
-            #    "I0"     : None
-            #    "If"     : array...
-            #  }
-            for column in self.columns:
-                data_key = column["data_key"]
-                # expect to find an array for the data_key
-                if self._column_data[data_key] is None and data_key in doc["data"]:
-                    if "transform" in column.keys():
-                        print("*************** applying a transform!")
-                        transform_key = column["transform"]
-                        transform_function = self._transforms[transform_key]
-                        self._column_data[data_key] = transform_function(doc)
-                    else:
-                        event_data = doc["data"][data_key][0]  # TODO: why is [0] needed?
-                        print(f"found data for data key {data_key}")
-                        pprint(event_data)
-                        if isinstance(event_data, np.ndarray):
-                            self._column_data[data_key] = event_data
-                        else:
-                            self._column_data[data_key] = (event_data, )
+        # get the stream name for this document
+        stream_name = self._uid_to_descriptor[doc["descriptor"]]["name"]
+        #print(
+        #    f"event-page from stream {stream_name} with descriptor uid {doc['descriptor']}"
+        #)
 
-            filename = f"{self._templated_file_prefix}" + doc['seq_num'] + ".xdi"
-            with self._manager.open("stream_data", filename, "xt") as xdi_file:
-                self._write_header(xdi_file)
-                # self._column_data_values looks like
-                # [[...], [...], [...]]
-                for row_data in zip_longest(
-                        *self._column_data.values(),
-                        fillvalue="NA"
-                ):
-                    xdi_file.write("\t".join((str(d) for d in row_data)))
-                    xdi_file.write("\n")
+        # assumption: the primary stream event page arrives
+        # between corresponding row_end stream event pages
+        if stream_name == "row_ends":
+            if len(self._row_end_docs) == 0:
+                self._row_end_docs.append(doc)
+                self._event_page_begin_row(doc)
+            elif len(self._row_end_docs) == 1:
+                self._event_page_end_row(doc)
+                self._row_end_docs.clear()
+            else:
+                # something is wrong
+                raise Exception(
+                    f"self._row_end_docs should not have length {len(self._row_end_docs)}"
+                )
+        elif stream_name == "energy_bins":
+            self._event_page_energy_bins(doc)
+        elif stream_name == "primary":
+            self._scan_number = doc["seq_num"]
+            self._event_page_primary(doc)
         else:
-            # this event has no data to export
             pass
+            # self._event_page_other(doc)
+
+    def _event_page_begin_row(self, doc):
+        """
+        Get the start time from this document.
+        Parameters
+        ----------
+        """
+        print("begin_row")
+        self._event_page_header_line_buffer = {
+            k: v for k, v in self._header_line_buffer.items() if v is None
+        }
+
+        if "Scan.start_time" in self._xdi_file_template["optional_headers"]:
+            self._event_page_header_line_buffer[
+                "Scan.start_time"
+            ] = datetime.fromtimestamp(doc["time"]).isoformat()
+
+    def _event_page_end_row(self, doc):
+        """
+        Get the end time from this document and write the file.
+        Parameters
+        ----------
+        """
+        if "Scan.end_time" in self._xdi_file_template["optional_headers"]:
+            self._event_page_header_line_buffer[
+                "Scan_time.end"
+            ] = datetime.fromtimestamp(doc["time"]).isoformat()
+
+    def _event_page_energy_bins(self, doc):
+        self._update_data_columns_from_doc(doc=doc)
+
+    def _event_page_primary(self, doc):
+        """
+        Parameters
+        ----------
+
+        """
+        self._update_data_columns_from_doc(doc=doc)
+
+        filename = self._templated_file_prefix + str(self._scan_number) + ".xdi"
+        with self._manager.open("stream_data", filename, "xt") as xdi_file:
+            # combine header line buffers maintaining header line order
+            combined_header_line_buffer = dict(self._header_line_buffer)
+            for k, v in self._event_page_header_line_buffer.items():
+                if combined_header_line_buffer[k] is None:
+                    combined_header_line_buffer[k] = v
+
+            self._write_header(
+                output_file=xdi_file, header_line_buffer=combined_header_line_buffer
+            )
+            # self._column_data_values looks like
+            # [[...], [...], [...]]
+            pprint(self._column_data)
+            for row_data in zip_longest(*self._column_data.values(), fillvalue="NA"):
+                xdi_file.write("\t".join((str(d) for d in row_data)))
+                xdi_file.write("\n")
+
+        # don't use this information again
+        #self._column_data.clear()
+        #self._initialize_column_data_dict()
+        # self._event_page_header_line_buffer.clear()
+
+    def _update_data_columns_from_doc(self, doc):
+        # keep a dict of columns of data like:
+        #  {
+        #    "energy" : array...
+        #    "I0"     : None
+        #    "If"     : array...
+        #  }
+        for column in self.columns:
+            data_key = column["data_key"]
+            # expect to find an array for the data_key
+            if data_key in doc["data"]:
+            #if self._column_data[data_key] is None and data_key in doc["data"]:
+                print(f"getting {data_key} from doc {doc['descriptor']}")
+                if "transform" in column.keys():
+                    print("*************** applying a transform!")
+                    transform_key = column["transform"]
+                    transform_function = self._transforms[transform_key]
+                    self._column_data[data_key] = transform_function(doc)
+                else:
+                    event_data = doc["data"][data_key][0]  # TODO: why is [0] needed?
+                    print(f"found data for data key {data_key}")
+                    pprint(event_data)
+                    if isinstance(event_data, np.ndarray):
+                        self._column_data[data_key] = event_data
+                    else:
+                        self._column_data[data_key] = (event_data,)
 
     def stop(self, doc):
         pass
-        # self._update_header_lines_from_doc(doc_name="stop", doc=doc)
-        # self._manager.close()
-        # for artifact_label, artifacts in self._manager.artifacts.items():
-        #     for artifact in artifacts:
-        #         print("finishing artifact {}".format(artifact))
-        #         temp_artifact_path = artifact.with_suffix(".updating")
-        #         print("creating {}".format(temp_artifact_path))
-        #         with artifact.open() as a, temp_artifact_path.open("wt") as t:
-        #             # write a fresh header
-        #             self._write_header(output_file=t)
-        #             # write the data
-        #             for row_data in zip_longest(
-        #                 *self._column_data.values(),
-        #                 fillvalue="NA"
-        #             ):
-        #                 t.write("\t".join((str(d) for d in row_data)))
-        #                 t.write("\n")
-        #
-        #         artifact.unlink()
-        #         temp_artifact_path.rename(artifact)
 
     def _initialize_column_data_dict(self):
+        print("_initialize_column_data_dict")
+        #self._column_data = dict()
         for xdi_key, xdi_value in self._xdi_file_template["columns"].items():
             self._column_data[xdi_value["data_key"]] = None
 
-    def _update_header_lines_from_doc(self, doc_name, doc):
+    def _update_header_lines_from_doc(self, doc_name, doc, header_line_buffer):
         """
-        Initialize or update self._header_line_buffer using information in the
-        specified document.
+        Initialize or update the specified header_line_buffer using information
+        in the specified document.
 
-        The first time through self._header_line_buffer is empty. At this point
-        all the XDI header keys should be inserted with value None.
+        The first time through header_line_buffer is empty. At this point
+        all the XDI header keys from self._xdi_file_template will be inserted
+        with value None into header_line_buffer.
 
         Subsequent calls will insert values (full XDI header rows) only for
-        entries with value None. Entries with a header row value will not be
-        updated.
+        header line buffer entries with value None. Entries with a not-None
+        header row value (a string) will not be updated.
 
         {}
 
@@ -431,17 +499,26 @@ class Serializer(event_model.DocumentRouter):
           ...
         }
 
-        :param doc_name:
-        :param doc:
-        :return:
+            Parameters
+            ----------
+            doc_name: str
+
+            doc:
+
+            header_line_buffer: dict[str, str]
+                dict of (XDI header field, XDI header row) such as
+                    ("Element.symbol", None)
+                or
+                    ("Element.symbol", "# Element.symbol = K")
         """
+
         def _get_empty_header_lines(config_section_name):
             """
             Return entries from self._xdi_file_template to be used to generate header rows
             using information from a document. Each (key, value) pair returned meets
             two criteria:
-              1. 'key' is in both self._xdi_file_template and self._header_line_buffer
-              2. self._header_line_buffer[key] is None (meaning this header row has not been generated yet)
+              1. 'key' is in both self._xdi_file_template and header_line_buffer
+              2. header_line_buffer[key] is None (meaning this header row has not been generated yet)
 
             Parameters
             ----------
@@ -455,50 +532,60 @@ class Serializer(event_model.DocumentRouter):
             """
             for _header_label in self._xdi_file_template[config_section_name].keys():
                 # initialize self._header_line_buffer[k] if it does not exist
-                if _header_label not in self._header_line_buffer:
-                    self._header_line_buffer[_header_label] = None
+                if _header_label not in header_line_buffer:
+                    header_line_buffer[_header_label] = None
                 else:
+                    # _header_label is already a key in header_line_buffer
                     pass
-                # yield (header_label, self._xdi_file_template[header_label]) if
-                # the corresponding header line has not been generated
-                if self._header_line_buffer[_header_label] is None:
-                    yield _header_label, self._xdi_file_template[config_section_name][_header_label]
+                # if the corresponding header line has not been generated
+                # yield the string template to generate that line
+                if header_line_buffer[_header_label] is None:
+                    yield _header_label, self._xdi_file_template[config_section_name][
+                        _header_label
+                    ]
                 else:
+                    # a header line string has already been generated for _header_label
                     pass
 
         for header_label, version in _get_empty_header_lines("versions"):
-            self._header_line_buffer[header_label] = version
+            header_line_buffer[header_label] = version
 
         for header_label, column_line_template in _get_empty_header_lines("columns"):
             header_value = column_line_template["column_label"].format(**doc)
             if "units" in column_line_template:
-                self._header_line_buffer[header_label] = (
-                    f"# {header_label} = {header_value} " + column_line_template["units"]
+                header_line_buffer[header_label] = (
+                    f"# {header_label} = {header_value} "
+                    + column_line_template["units"]
                 )
             else:
-                self._header_line_buffer[header_label] = f"# {header_label} = {header_value}"
+                header_line_buffer[header_label] = f"# {header_label} = {header_value}"
 
-        for header_label, column_line_template in _get_empty_header_lines("required_headers"):
-            header_value = column_line_template["data"].format(**doc)
-            self._header_line_buffer[header_label] = f"# {header_label} = {header_value}"
-
-        for header_label, column_line_template in _get_empty_header_lines("optional_headers"):
-            if header_label == "Scan.start_time" and doc_name == "start":
-                header_value = datetime.fromtimestamp(doc["time"]).isoformat()
-            elif header_label == "Scan.end_time" and doc_name == "stop":
-                header_value = datetime.fromtimestamp(doc["time"]).isoformat()
-            else:
+        for header_label, column_line_template in _get_empty_header_lines(
+            "required_headers"
+        ):
+            print(doc_name)
+            print(header_label)
+            print(column_line_template)
+            doc_name_unconstrained = "doc_name" not in column_line_template
+            doc_name_constraint_satisfied = (
+                "doc_name" in column_line_template
+                and doc_name == column_line_template["doc_name"]
+            )
+            if doc_name_unconstrained or doc_name_constraint_satisfied:
                 header_value = column_line_template["data"].format(**doc)
-            self._header_line_buffer[header_label] = f"{header_label} = {header_value}"
+                header_line_buffer[header_label] = f"# {header_label} = {header_value}"
 
-    def _write_header(self, output_file=None):
+        for header_label, column_line_template in _get_empty_header_lines(
+            "optional_headers"
+        ):
+            header_value = column_line_template["data"].format(**doc)
+            header_line_buffer[header_label] = f"{header_label} = {header_value}"
+
+    def _write_header(self, header_line_buffer, output_file):
         """Write all header information, "None" for missing information.
 
         """
-        if output_file is None:
-            output_file = self._output_file
-
-        for header_field, header_value in self._header_line_buffer.items():
+        for header_field, header_value in header_line_buffer.items():
             output_file.write(header_value)
             output_file.write("\n")
 
@@ -506,4 +593,3 @@ class Serializer(event_model.DocumentRouter):
         output_file.write(
             "# {}\n".format("\t".join([c["column_label"] for c in self.columns]))
         )
-
