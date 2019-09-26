@@ -23,6 +23,12 @@ def _get_v_with_dflt(sig, dflt):
     ret = yield from bps.read(sig)
     return (ret[sig.name]['value'] if ret is not None else dflt)
 
+x_centers = Signal(value=[], name="x_centers", kind="normal")
+x_centers.tolerance = 1e-15
+y_centers = Signal(value=[], name="y_centers", kind="normal")
+y_centers.tolerance = 1e-15
+z_centers = Signal(value=[], name="z_centers", kind="normal")
+z_centers.tolerance = 1e-15
 
 def xy_fly(scan_title, *, dwell_time,
            xstart, xstop, xstep_size,
@@ -74,6 +80,10 @@ def xy_fly(scan_title, *, dwell_time,
 
     num_xpixels = int(np.floor((xstop - xstart) / a_xstep_size))
     num_ypixels = int(np.floor((ystop - ystart) / a_ystep_size))
+
+    yield from bps.mv(
+        x_centers, a_xstep_size / 2 + xstart + np.arange(num_xpixels) * a_xstep_size
+    )
 
     # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
     roi_livegrid_key = xs.channel1.rois.roi01.value.name
@@ -155,14 +165,23 @@ def xy_fly(scan_title, *, dwell_time,
 
         def fly_row():
             # go to start of row
-            yield from bps.mv(xy_fly_stage.x, xstart,
-                              xy_fly_stage.y, ystart + y*ystep_size)
+            target_y = ystart + y * a_ystep_size
+            yield from bps.mv(xy_fly_stage.x, xstart, xy_fly_stage.y, target_y)
+            yield from bps.mv(
+                y_centers, np.ones(num_xpixels) * target_y
+            )  # set the fly speed
 
-            # set the fly speed
+            ret = yield from bps.read(xy_fly_stage.z.user_readback)  # (in mm)
+            zpos = (
+                ret[xy_fly_stage.z.user_readback.name]["value"]
+                if ret is not None
+                else 0
+            )
+            yield from bps.mov(z_centers, np.ones(num_xpixels) * zpos)
+
             yield from bps.mv(xy_fly_stage.x.velocity, flyspeed)
 
-            yield from bps.trigger_and_read([xy_fly_stage],
-                                            name='row_ends')
+            yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
 
             for v in ['p1600=0', 'p1600=1']:
                 yield from bps.mv(dtt, v)
@@ -187,6 +206,12 @@ def xy_fly(scan_title, *, dwell_time,
             yield from bps.create(name='primary')
             #
             yield from bps.read(sclr)
+            yield from bps.read(mono)
+            yield from bps.read(x_centers)
+            yield from bps.read(y_centers)
+            yield from bps.read(z_centers)
+            yield from bps.read(xy_fly_stage.y)
+            yield from bps.read(xy_fly_stage.z)
             # and maybe the xspress3
             if xspress3 is not None:
                 yield from bps.read(xspress3)
@@ -350,9 +375,10 @@ def E_fly(scan_title, *,
                 yield from bps.trigger(xspress3, group=f'fly_energy_{y}')
 
             # fly the motor
-            yield from bps.abs_set(mono.linear, l_stop + a_l_step_size,
-                                   group=f'fly_energy_{y}')
-            yield from bps.wait(group=f'fly_energy_{y}')
+            yield from bps.abs_set(
+                mono.linear, l_stop + a_l_step_size, group=f"fly_energy_{y}"
+            )
+            yield from bps.wait(group=f"fly_energy_{y}")
 
             yield from bps.trigger_and_read([mono],
                                             name='row_ends')
