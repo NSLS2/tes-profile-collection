@@ -125,7 +125,27 @@ def xy_fly(scan_title, *, dwell_time,
     #@bpp.monitor_during_decorator([xspress3])
     @bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
-    @bpp.run_decorator(md={'scan_title': scan_title})
+    @bpp.run_decorator(
+        md={
+            "scan_title": scan_title,
+            "user_input": {
+                "dwell_timne": dwell_time,
+                "xstart": xstart,
+                "xstop": xstop,
+                "xstep_size": xstep_size,
+                "ystart": ystart,
+                "ystep_size": ystep_size,
+            },
+            "derived_input": {
+                "actual_ystep_size": a_ystep_size,
+                "actual_xstep_size": a_xstep_size,
+                "fly_velocity": flyspeed,
+                "xpixels": num_xpixels,
+                "ypixels": num_ypixels,
+                "prescale": prescale,
+            },
+        }
+    )
     def fly_body():
 
         yield from bps.mv(xy_fly_stage.x, xstart,
@@ -282,9 +302,27 @@ def E_fly(scan_title, *,
     #@bpp.stage_decorator([xspress3])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
-    @bpp.run_decorator(md={'scan_title': scan_title})
-
-
+    @bpp.run_decorator(
+        md={
+            "scan_title": scan_title,
+            "user_input": {
+                "element": element,
+                "start": start,
+                "stop": stop,
+                "step_size": step_size,
+            },
+            "derived_input": {
+                "l_start": l_start,
+                "l_stop": l_stop,
+                "l_step_size": l_step_size,
+                "lmres": lmres,
+                "actual_l_step_size": a_l_step_size,
+                "fly_velocity": flyspeed,
+                "num_pixels": num_pixels,
+                "prescale": prescale,
+            },
+        }
+    )
     def fly_body():
         yield from bps.trigger_and_read([E_centers], name='energy_bins')
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
