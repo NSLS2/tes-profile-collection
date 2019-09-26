@@ -4,3 +4,7 @@ __pycache__/
 *.sqlite
 db/
 static/
+.idea
+.vscode
+*.xdi
+xdi/
