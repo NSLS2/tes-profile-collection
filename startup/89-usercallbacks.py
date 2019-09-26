@@ -83,7 +83,7 @@ class EScanPlot(CallbackBase):
             self._current_data[bin] = doc['data']['xs_channel1_rois_roi01_value']
             self.current_line.set_ydata(self._current_data)
             self.ax.relim()
-            self.ax.autoscale(scalex=False)
+            self.ax.autoscale()
             self.fig.canvas.draw_idle()
 
 
