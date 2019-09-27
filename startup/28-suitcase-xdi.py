@@ -1,10 +1,4 @@
-# Suitcase subpackages should follow strict naming and interface conventions.
-# The public API must include Serializer and should include export if it is
-# intended to be user-facing. They should accept the parameters sketched here,
-# but may also accept additional required or optional keyword arguments, as
-# needed.
 from itertools import zip_longest
-from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
 
@@ -14,20 +8,11 @@ import toml
 import event_model
 import suitcase.utils
 
-from pprint import pprint
-
-##from ._version import get_versions
-
-##__version__ = get_versions()["version"]
-##del get_versions
-
 
 def export(
     gen,
     directory,
     file_prefix="{scan_title}-",
-    xdi_file_template=None,
-    transforms=None,
     **kwargs,
 ):
     """
@@ -95,8 +80,6 @@ def export(
     with Serializer(
         directory,
         file_prefix,
-        xdi_file_template=xdi_file_template,
-        transforms=transforms,
         **kwargs,
     ) as serializer:
         for item in gen:
@@ -160,9 +143,9 @@ class Serializer(event_model.DocumentRouter):
         self._file_prefix = file_prefix
 
         if "xdi_file_template" not in kwargs or kwargs["xdi_file_template"] is None:
-            self._xdi_file_template = None
+            raise Exception("xdi_file_template must contain configuration information in TOML format")
         else:
-            self._xdi_file_template = toml.loads(kwargs["xdi_file_template"])
+           self._xdi_file_template = toml.loads(kwargs["xdi_file_template"])
 
         if "transforms" not in kwargs or kwargs["transforms"] is None:
             self._transforms = dict()
@@ -179,7 +162,6 @@ class Serializer(event_model.DocumentRouter):
         # same across all output files. Header lines in the latter will vary across output
         # files.
         self._header_line_buffer = dict()
-        # self._event_page_header_line_buffer = None
 
         # use list self._row_end_docs to discriminate a "begin row" event_page from
         # an "end row" event page
@@ -194,8 +176,11 @@ class Serializer(event_model.DocumentRouter):
         # is ready to write
         self._column_data = dict()
 
-        self.columns = None
-        self.export_data_keys = None
+        self.columns = tuple([v for k, v in self._xdi_file_template["columns"].items()])
+        if len(self.columns) == 0:
+            raise ValueError("found no Columns")
+
+        self.export_data_keys = tuple({c["data_key"] for c in self.columns})
 
     @property
     def artifacts(self):
@@ -256,25 +241,6 @@ class Serializer(event_model.DocumentRouter):
     #
     #   my_function(doc, fil
     def start(self, doc):
-
-        if self._xdi_file_template is None:
-            if "config" in doc["md"]["suitcase-xdi"]:
-                print(doc["md"]["suitcase-xdi"]["config"])
-                self._xdi_file_template = toml.loads(
-                    doc["md"]["suitcase-xdi"]["config"], _dict=OrderedDict
-                )
-            elif "config-file-path" in doc["md"]["suitcase-xdi"]:
-                self._xdi_file_template = toml.load(
-                    doc["md"]["suitcase-xdi"]["config-file-path"], _dict=OrderedDict
-                )
-            else:
-                raise Exception(
-                    "configuration must be specified as a file in md[suitcase-xdi][config-file-path]"
-                    "or as a string in md[suitcase-xdi][config]"
-                )
-        else:
-            # XDI file configuration was provided to __init__
-            pass
         """
         Use the configuration information to build an ordered dictionary of header fields, eg
         {
@@ -295,8 +261,8 @@ class Serializer(event_model.DocumentRouter):
             # Scan.edge_energy = Scan_edge_energy
         }
         """
-
         self._initialize_column_data_dict()
+
         # extract header information from the start document
         self._update_header_lines_from_doc(
             doc_name="start", doc=doc, header_line_buffer=self._header_line_buffer
@@ -307,16 +273,9 @@ class Serializer(event_model.DocumentRouter):
         # or 'my-data-from-{plan-name}' -> 'my-data-from-scan'
         self._templated_file_prefix = self._file_prefix.format(**doc)
 
-        self.columns = tuple([v for k, v in self._xdi_file_template["columns"].items()])
-        if len(self.columns) == 0:
-            raise ValueError("found no Columns")
-
-        self.export_data_keys = tuple({c["data_key"] for c in self.columns})
-
     def descriptor(self, doc):
         """
-        It is possible to see more than one descriptor. Keep a list of all descriptors with data
-        to be exported.
+        Keep a dictionary of (descriptor uid -> descriptor document)
 
         Parameters
         ----------
@@ -325,7 +284,6 @@ class Serializer(event_model.DocumentRouter):
         """
 
         self._uid_to_descriptor[doc["uid"]] = doc
-        print(f"got a descriptor for stream {doc['name']} with uid {doc['uid']}")
         self._update_header_lines_from_doc(
             doc_name="descriptor", doc=doc, header_line_buffer=self._header_line_buffer
         )
@@ -340,14 +298,9 @@ class Serializer(event_model.DocumentRouter):
             an event-page document
         """
 
-        # get the stream name for this document
+        # get the stream name for this document from the corresponding descriptor document
         stream_name = self._uid_to_descriptor[doc["descriptor"]]["name"]
-        # print(
-        #    f"event-page from stream {stream_name} with descriptor uid {doc['descriptor']}"
-        # )
 
-        # assumption: the primary stream event page arrives
-        # between corresponding row_end stream event pages
         if stream_name == "row_ends":
             if len(self._row_end_docs) == 0:
                 self._row_end_docs.append(doc)
@@ -367,15 +320,17 @@ class Serializer(event_model.DocumentRouter):
             self._event_page_primary(doc)
         else:
             pass
-            # self._event_page_other(doc)
 
     def _event_page_begin_row(self, doc):
         """
         Get the start time from this document.
+
         Parameters
         ----------
+        doc : dict
+            first of event-page document on row_ends stream
         """
-        print("begin_row")
+        # print("begin_row")
         self._event_page_header_line_buffer = {
             k: v for k, v in self._header_line_buffer.items() if v is None
         }
@@ -406,8 +361,17 @@ class Serializer(event_model.DocumentRouter):
 
         """
         self._update_data_columns_from_doc(doc=doc)
+        dt = datetime.datetime.now()
 
-        filename = self._templated_file_prefix + str(self._scan_number) + ".xdi"
+        filename = (
+            self._templated_file_prefix
+            + str(self._scan_number[0])
+            + "-"
+            + datetime.time(
+                hour=dt.hour, minute=dt.minute, second=dt.second
+            ).isoformat()
+            + ".xdi"
+        )
         with self._manager.open("stream_data", filename, "xt") as xdi_file:
             # combine header line buffers maintaining header line order
             combined_header_line_buffer = dict(self._header_line_buffer)
@@ -420,15 +384,10 @@ class Serializer(event_model.DocumentRouter):
             )
             # self._column_data_values looks like
             # [[...], [...], [...]]
-            pprint(self._column_data)
+            # pprint(self._column_data)
             for row_data in zip_longest(*self._column_data.values(), fillvalue="NA"):
                 xdi_file.write("\t".join((str(d) for d in row_data)))
                 xdi_file.write("\n")
-
-        # don't use this information again
-        # self._column_data.clear()
-        # self._initialize_column_data_dict()
-        # self._event_page_header_line_buffer.clear()
 
     def _update_data_columns_from_doc(self, doc):
         # keep a dict of columns of data like:
@@ -442,16 +401,16 @@ class Serializer(event_model.DocumentRouter):
             # expect to find an array for the data_key
             if data_key in doc["data"]:
                 # if self._column_data[data_key] is None and data_key in doc["data"]:
-                print(f"getting {data_key} from doc {doc['descriptor']}")
+                # print(f"getting {data_key} from doc {doc['descriptor']}")
                 if "transform" in column.keys():
-                    print("*************** applying a transform!")
+                    # print("*************** applying a transform!")
                     transform_key = column["transform"]
                     transform_function = self._transforms[transform_key]
                     self._column_data[data_key] = transform_function(doc)
                 else:
                     event_data = doc["data"][data_key][0]  # TODO: why is [0] needed?
-                    print(f"found data for data key {data_key}")
-                    pprint(event_data)
+                    # (f"found data for data key {data_key}")
+                    # pprint(event_data)
                     if isinstance(event_data, np.ndarray):
                         self._column_data[data_key] = event_data
                     else:
@@ -461,7 +420,7 @@ class Serializer(event_model.DocumentRouter):
         pass
 
     def _initialize_column_data_dict(self):
-        print("_initialize_column_data_dict")
+        # print("_initialize_column_data_dict")
         # self._column_data = dict()
         for xdi_key, xdi_value in self._xdi_file_template["columns"].items():
             self._column_data[xdi_value["data_key"]] = None
@@ -563,9 +522,6 @@ class Serializer(event_model.DocumentRouter):
         for header_label, column_line_template in _get_empty_header_lines(
             "required_headers"
         ):
-            print(doc_name)
-            print(header_label)
-            print(column_line_template)
             doc_name_unconstrained = "doc_name" not in column_line_template
             doc_name_constraint_satisfied = (
                 "doc_name" in column_line_template
