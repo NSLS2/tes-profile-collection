@@ -1,3 +1,5 @@
+import h5py
+
 from ophyd.areadetector import (
     AreaDetector,
     PixiradDetectorCam,
