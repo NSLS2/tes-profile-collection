@@ -1,10 +1,14 @@
+import datetime
+import os.path
+import pprint
+import time
+
 from ophyd.utils import LimitError
 from ophyd import Signal
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
-from bluesky.callbacks import LiveTable, LivePlot
-import h5py
+from bluesky.callbacks import LivePlot
 
 # Testing VI with Yonghua
 
@@ -39,6 +43,7 @@ z_centers.tolerance = 1e-15
 def xy_fly(
     scan_title,
     *,
+    operator,
     dwell_time,
     xstart,
     xstop,
@@ -154,6 +159,7 @@ def xy_fly(
     @bpp.run_decorator(
         md={
             "scan_title": scan_title,
+            "operator": operator,
             "user_input": {
                 "dwell_timne": dwell_time,
                 "xstart": xstart,
@@ -239,12 +245,23 @@ def xy_fly(
 
     yield from fly_body()
 
+    # save the start document to a file for the benefit of the user
+    start = db[-1].start
+    dt = datetime.datetime.fromtimestamp(start["time"])
+    filepath = os.path.expanduser(
+        f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"
+        f"{start['plan_name']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}.log"
+    )
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, "wt") as output_file:
+        output_file.write(pprint.pformat(start))
+
 
 E_centers = Signal(value=[], name="E_centers", kind="normal")
 E_centers.tolerance = 1e-15
 
 
-def E_fly(scan_title, *, element, start, stop, step_size, num_scans, xspress3=None):
+def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, xspress3=None):
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
     assert num_scans > 0, f"num_scans ({num_scans}) must be more than 0"
@@ -318,6 +335,7 @@ def E_fly(scan_title, *, element, start, stop, step_size, num_scans, xspress3=No
     @bpp.run_decorator(
         md={
             "scan_title": scan_title,
+            "operator": operator,
             "user_input": {
                 "element": element,
                 "start": start,
@@ -386,3 +404,8 @@ def E_fly(scan_title, *, element, start, stop, step_size, num_scans, xspress3=No
             yield from fly_once(scan_iter)
 
     yield from fly_body()
+
+    print("Waiting for files... ...")
+    time.sleep(20)
+    artifacts = e_fly_export(db[-1])
+    pprint.pprint(artifacts)
