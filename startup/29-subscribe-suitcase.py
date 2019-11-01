@@ -4,7 +4,7 @@ import os.path
 import numpy as np
 
 
-element_to_roi = {"s": (222, 240), "p": (222, 240)}
+element_to_roi = {"s": (222, 240), "p": (192, 210), "pd": (274, 292)}
 
 suitcase_config = """\
 [versions]

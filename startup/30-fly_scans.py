@@ -8,6 +8,11 @@ from ophyd import Signal
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
 import numpy as np
+import pandas as pd
+from tkinter import messagebox
+#import tkinter as tk
+#from tkinter import filedialog
+
 from bluesky.callbacks import LivePlot
 
 # Testing VI with Yonghua
@@ -250,7 +255,7 @@ def xy_fly(
     dt = datetime.datetime.fromtimestamp(start["time"])
     filepath = os.path.expanduser(
         f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"
-        f"{start['plan_name']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}.log"
+        f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}.log"
     )
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "wt") as output_file:
@@ -313,8 +318,8 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
 
     # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
 
-    roi_livegrid_key = xs.channel1.rois.roi01.value.name
-    roi_livegrid = LivePlot(y=roi_livegrid_key)
+    #roi_livegrid_key = xs.channel1.rois.roi01.value.name
+    #roi_livegrid = LivePlot(y=roi_livegrid_key)
 
     # poke the struck settings
     yield from bps.mv(sclr.mcas.prescale, prescale)
@@ -328,7 +333,7 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
 
     @bpp.reset_positions_decorator([mono.linear])
     @bpp.stage_decorator([sclr])
-    @bpp.subs_decorator({"all": [roi_livegrid]})
+    #@bpp.subs_decorator({"all": [roi_livegrid]})
     @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
@@ -406,6 +411,32 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
     yield from fly_body()
 
     print("Waiting for files... ...")
-    time.sleep(20)
+    yield from bps.sleep(15)
     artifacts = e_fly_export(db[-1])
     pprint.pprint(artifacts)
+
+
+def multi_E_fly(index=None):
+    #root = "/home/xf08bm/Desktop/Users/"
+    #root.withdraw()
+
+    #file_path = filedialog.askopenfilename()
+    file_path = "/home/xf08bm/Desktop/Users/Multi_Escan_Para.xls"
+    data = np.array(pd.read_excel(file_path, index_col=0))
+    xy_fly_stage = xy_stage
+
+    if index is None:
+        index = range(data.shape[0])
+    for ii in index:
+        x = data[ii, 0]
+        y = data[ii, 1]
+        z = data[ii, 2]
+        scan_title = data[ii, 3]
+        operator = data[ii, 4]
+        element = data[ii, 5]
+        start = data[ii, 6]
+        stop = data[ii, 7]
+        step_size = data[ii, 8]
+        num_scans = data[ii, 9]
+        yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z,z)
+        yield from E_fly(scan_title, operator=operator, element=element, start=start, stop=stop, step_size=step_size, num_scans=num_scans, xspress3=xs)
