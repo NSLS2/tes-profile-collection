@@ -1,21 +1,20 @@
 import datetime
 import os.path
 import pprint
-import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 from ophyd.utils import LimitError
 from ophyd import Signal
 import bluesky.plan_stubs as bps
 import bluesky.preprocessors as bpp
-import numpy as np
-import pandas as pd
-from tkinter import messagebox
-#import tkinter as tk
-#from tkinter import filedialog
 
-from bluesky.callbacks import LivePlot
+from bluesky.callbacks import LiveGrid
 
 # Testing VI with Yonghua
+
 
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
@@ -48,7 +47,7 @@ z_centers.tolerance = 1e-15
 def xy_fly(
     scan_title,
     *,
-    operator,
+    beamline_operator,
     dwell_time,
     xstart,
     xstop,
@@ -64,6 +63,12 @@ def xy_fly(
 
     Parameters
     ----------
+    scan_title : str
+       A name for the scan.
+
+    beamline_operator : str
+       The individual responsible for this scan. Appears in output directory path.
+
     dwell_time : float
        Target time is s on each pixel
 
@@ -112,7 +117,6 @@ def xy_fly(
     fig = plt.figure("xs")
     fig.clf()
     roi_livegrid = LiveGrid(
-        ## SRX original (ynumstep+1, xnumstep+1),
         (num_ypixels + 1, num_xpixels + 1),
         roi_livegrid_key,
         clim=None,
@@ -164,9 +168,9 @@ def xy_fly(
     @bpp.run_decorator(
         md={
             "scan_title": scan_title,
-            "operator": operator,
+            "operator": beamline_operator,
             "user_input": {
-                "dwell_timne": dwell_time,
+                "dwell_time": dwell_time,
                 "xstart": xstart,
                 "xstop": xstop,
                 "xstep_size": xstep_size,
@@ -266,7 +270,9 @@ E_centers = Signal(value=[], name="E_centers", kind="normal")
 E_centers.tolerance = 1e-15
 
 
-def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, xspress3=None):
+def E_fly(
+    scan_title, *, operator, element, start, stop, step_size, num_scans, xspress3=None
+):
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
     assert num_scans > 0, f"num_scans ({num_scans}) must be more than 0"
@@ -306,10 +312,10 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
     yield from bps.mv(E_centers, bin_centers)
 
     # The flyspeed is set by Paul by edict
-    flyspeed = 0.1
+    flyspeed = 0.05
 
     # set up delta-tau trigger to fast motor
-    for v in ["p1600=0", "p1607=4", "p1600=1"]:
+    for v in ["p1600=0", "p1607=4", "p1600=1", "p1601=5"]:
         yield from bps.mv(dtt, v)
         yield from bps.sleep(0.1)
 
@@ -318,8 +324,8 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
 
     # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
 
-    #roi_livegrid_key = xs.channel1.rois.roi01.value.name
-    #roi_livegrid = LivePlot(y=roi_livegrid_key)
+    # roi_livegrid_key = xs.channel1.rois.roi01.value.name
+    # roi_livegrid = LivePlot(y=roi_livegrid_key)
 
     # poke the struck settings
     yield from bps.mv(sclr.mcas.prescale, prescale)
@@ -333,7 +339,7 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
 
     @bpp.reset_positions_decorator([mono.linear])
     @bpp.stage_decorator([sclr])
-    #@bpp.subs_decorator({"all": [roi_livegrid]})
+    # @bpp.subs_decorator({"all": [roi_livegrid]})
     @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
@@ -379,7 +385,7 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
                 yield from bps.mv(dtt, v)
                 yield from bps.sleep(0.1)
 
-            # arm the struck
+            # arm the Struck
             yield from bps.trigger(sclr, group=f"fly_energy_{y}")
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_energy_{y}")
@@ -417,12 +423,12 @@ def E_fly(scan_title, *, operator, element, start, stop, step_size, num_scans, x
 
 
 def multi_E_fly(index=None):
-    #root = "/home/xf08bm/Desktop/Users/"
-    #root.withdraw()
+    # root = "/home/xf08bm/Desktop/Users/"
+    # root.withdraw()
 
-    #file_path = filedialog.askopenfilename()
+    # file_path = filedialog.askopenfilename()
     file_path = "/home/xf08bm/Desktop/Users/Multi_Escan_Para.xls"
-    data = np.array(pd.read_excel(file_path, index_col=0))
+    data = np.array(pd.read_excel(file_path, sheet_name="E_fly", index_col=0))
     xy_fly_stage = xy_stage
 
     if index is None:
@@ -438,5 +444,14 @@ def multi_E_fly(index=None):
         stop = data[ii, 7]
         step_size = data[ii, 8]
         num_scans = data[ii, 9]
-        yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z,z)
-        yield from E_fly(scan_title, operator=operator, element=element, start=start, stop=stop, step_size=step_size, num_scans=num_scans, xspress3=xs)
+        yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
+        yield from E_fly(
+            scan_title,
+            operator=operator,
+            element=element,
+            start=start,
+            stop=stop,
+            step_size=step_size,
+            num_scans=num_scans,
+            xspress3=xs,
+        )
