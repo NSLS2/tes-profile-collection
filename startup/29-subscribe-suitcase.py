@@ -1,10 +1,20 @@
 import datetime
+from functools import partial
 import os.path
 
 import numpy as np
 
-
-element_to_roi = {"s": (222, 240), "p": (192, 210), "pd": (274, 292)}
+element_to_roi = {
+    "s": (222, 240),
+    "p": (192, 210),
+    "pd": (274, 292),
+    "au": (202, 220),
+    "cl": (253, 271),
+    "ru_croft": (240, 280),
+    "y_croft": (170, 205),
+    "zr_croft": (190, 225),
+    "zr_sahiner": (195, 225),
+}
 
 suitcase_config = """\
 [versions]
@@ -37,7 +47,9 @@ def e_fly_export(db_header):
     start = db_header.start
     element = start["user_input"]["element"]
     roi = element_to_roi[element.lower()]
-    suitcase_transforms = {"e_fly_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])}
+    suitcase_transforms = {
+        "e_fly_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])
+    }
 
     with Serializer(
         directory=os.path.expanduser(
@@ -57,7 +69,9 @@ def e_fly_serializer_factory(name, start_doc):
     element = start_doc["user_input"]["element"]
     roi = element_to_roi[element.lower()]
 
-    suitcase_transforms = {"e_fly_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])}
+    suitcase_transforms = {
+        "e_fly_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])
+    }
 
     serializer = Serializer(
         directory=os.path.expanduser(
@@ -66,5 +80,77 @@ def e_fly_serializer_factory(name, start_doc):
         file_prefix="{scan_title}-{scan_id}-",
         xdi_file_template=suitcase_config,
         transforms=suitcase_transforms,
+    )
+    return [serializer], []
+
+
+def e_step_serializer(element, beamline_operator, suitcase_config):
+    """
+    Return an XDI serializer with output directory
+        "~/Users/Data/{beamline_operator}/{datetime.date.today().isoformat()}/e_step/"
+    and file prefix
+        "{scan_title}-{scan_id}-"
+
+    Parameters
+    ---------
+    element: str
+    beamline_operator: str
+    suitcase_config: str
+
+    Return
+    ------
+    suitcase.xdi.Serializer
+    """
+    roi = element_to_roi[element.lower()]
+    suitcase_transforms = {
+        "e_scan_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])
+    }
+    serializer = Serializer(
+        directory=os.path.expanduser(
+            f"~/Users/Data/{beamline_operator}/{datetime.date.today().isoformat()}/e_step/"
+        ),
+        file_prefix="{scan_title}-{scan_id}-",
+        xdi_file_template=suitcase_config,
+        transforms=suitcase_transforms,
+    )
+    return serializer
+
+
+def e_step_export(db_header):
+    """
+    Export data from DataBroker to XDI format.
+    """
+
+    start = db_header.start
+    with e_step_serializer(
+        element=start["user_input"]["element"],
+        beamline_operator=start["operator"],
+        suitcase_config=suitcase_config,
+    ) as serializer:
+        for item in db_header.documents(fill=True):
+            serializer(*item)
+
+    return serializer.artifacts
+
+
+def e_step_serializer_factory(name, start_doc):
+    """
+    Factory function returning XDI Serializers.
+
+    Parameters
+    ----------
+
+    name: str
+    start_doc: dict
+
+    Return
+    ------
+
+    [serializer], []
+    """
+    serializer = e_step_serializer(
+        element=start_doc["user_input"]["element"],
+        beamline_operator=start_doc["operator"],
+        suitcase_config=suitcase_config,
     )
     return [serializer], []
