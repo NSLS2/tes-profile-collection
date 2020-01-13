@@ -32,7 +32,7 @@ def rois(element):
     if element == 's':
         roi = [221, 239]
     elif element == 'p':
-        roi = []
+        roi = [192, 210]
     elif element == 'ca':
         roi = []
     elif element == 'k':
@@ -40,15 +40,27 @@ def rois(element):
     elif element == 'ar':
         roi = []
     elif element == 'Cl':
-        roi = []
+        roi = [253, 271]
     elif element == 'si':
         roi = []
     elif element == 'al':
         roi = []
     elif element == 'mg':
         roi = []
+    elif element == 'pd':
+        roi = [274, 292]
+    elif element == 'au':
+        roi = [202, 220]
     elif element == 'u':
         roi = []
+    elif element == 'ru_croft':
+        roi = [240, 280]
+    elif element == 'y_croft':
+        roi = [170, 205]
+    elif element == 'zr_croft':
+        roi = [190, 225]
+    elif element == 'zr_sahiner':
+        roi = [195, 225]
     else:
         roi = []
 
