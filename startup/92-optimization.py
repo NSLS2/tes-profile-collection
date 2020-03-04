@@ -44,17 +44,19 @@ class BlueskyFlyer:
 class HardwareFlyer(BlueskyFlyer):
     def __init__(self, params_to_change, velocities, time_to_travel, detector, motors):
         super().__init__()
+        self.name = 'tes_hardware_flyer'
 
         # TODO: These 3 lists to be merged later
         self.params_to_change = params_to_change  # dictionary with motor names as keys
         self.velocities = velocities  # dictionary with motor names as keys
-        self.time_to_travel = time_to_travel
+        self.time_to_travel = time_to_travel  # dictionary with motor names as keys
 
         self.detector = detector
         self.motors = motors
 
         self.watch_positions = {name: [] for name in self.motors}
         self.watch_intensities = []
+        self.watch_timestamps = []
 
         self.motor_move_status = None
 
@@ -104,14 +106,69 @@ class HardwareFlyer(BlueskyFlyer):
         # all motors arrived
         return self.motor_move_status
 
+    def describe_collect(self):
+
+        return_dict = {self.name:
+                           {
+                               f'{self.name}_{self.detector.channel1.rois.roi01.name}':
+                                   {'source': f'{self.name}_{self.detector.channel1.rois.roi01.name}',
+                                    'dtype': 'number',
+                                    'shape': []},
+                            }
+                        }
+
+        motor_dict = {}
+        for motor_name, motor_obj in self.motors.items():
+             motor_dict[f'{self.name}_{motor_name}_velocity'] = {'source': f'{self.name}_{motor_name}_velocity',
+                                                                 'dtype': 'number', 'shape': []}
+             motor_dict[f'{self.name}_{motor_name}_position'] = {'source': f'{self.name}_{motor_name}_position',
+                                                                 'dtype': 'number', 'shape': []}
+        return_dict[self.name].update(motor_dict)
+
+        print('describe_collect:\n', return_dict)
+
+        return return_dict
+
     def collect(self):
-        # TODO: continue with this
-        yield from super().collect()
+        for ind in range(len(self.watch_intensities)):
+            motor_dict = {}
+            for motor_name, motor_obj in self.motors.items():
+                motor_dict.update(
+                    {f'{self.name}_{motor_name}_velocity': self.velocities[motor_name],
+                     f'{self.name}_{motor_name}_position': self.watch_positions[motor_name][ind]}
+                )
+
+            data = {f'{self.name}_{self.detector.channel1.rois.roi01.name}': self.watch_intensities[ind]}
+            data.update(motor_dict)
+
+            print('data:\n', data)
+
+            yield {'data': data,
+                   'timestamps': {key: self.watch_timestamps[ind] for key in data},
+                   'time': self.watch_timestamps[ind],
+                   'filled': {key: False for key in data}}
+
+        ## This will produce one event with dictionaries in the <...>_parameters field.
+        # motor_params_dict = {}
+        # for motor_name, motor_obj in self.motors.items():
+        #     motor_parameters = {'timestamps': self.watch_timestamps,
+        #                         'velocity': self.velocities[motor_name],
+        #                         'positions': self.watch_positions[motor_name]}
+        #     motor_params_dict[motor_name] = motor_parameters
+        #
+        # data = {f'{self.name}_{self.detector.channel1.rois.roi01.name}': self.watch_intensities,
+        #         f'{self.name}_parameters': motor_params_dict}
+        #
+        # now = ttime.time()
+        # yield {'data': data,
+        #        'timestamps': {key: now for key in data}, 'time': now,
+        #        'filled': {key: False for key in data}}
 
     def _watch_function(self, *args, **kwargs):
         self.watch_intensities.append(self.detector.channel1.rois.roi01.value.get())
         for motor_name, motor_obj in self.motors.items():
             self.watch_positions[motor_name].append(motor_obj.user_readback.get())
+        self.watch_timestamps.append(ttime.time())
 
 
 params_to_change = []
@@ -276,3 +333,9 @@ def optimize():
         yield from bp.fly([hf])
 
         hf_flyers.append(hf)
+
+
+def move_back():
+    yield from bps.mv(sample_stage.x, 69.5,
+                      sample_stage.y, 40,
+                      sample_stage.z, 22.22)
