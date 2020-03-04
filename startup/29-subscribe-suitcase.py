@@ -4,17 +4,6 @@ import os.path
 
 import numpy as np
 
-element_to_roi = {
-    "s": (222, 240),
-    "p": (192, 210),
-    "pd": (274, 292),
-    "au": (202, 220),
-    "cl": (253, 271),
-    "ru_croft": (240, 280),
-    "y_croft": (170, 205),
-    "zr_croft": (190, 225),
-    "zr_sahiner": (195, 225),
-}
 
 suitcase_config = """\
 [versions]
@@ -23,8 +12,8 @@ suitcase_config = """\
 [columns]
 "Column.1"                    = {column_label="energy",  data_key="E_centers", column_data="{[data][E_centers][0]}", units="eV"}
 "Column.2"                    = {column_label="I0",      data_key="I0", column_data="{data[I0][0]}"}
-"Column.3"                    = {column_label="If",      data_key="fluor", column_data="{data[fluor][0]}", transform="e_fly_roi1"}
-
+"Column.3"                    = {column_label="S_Sclr",      data_key="S", column_data="{data[S][0]}"}
+"Column.4"                    = {column_label="If_XS",      data_key="fluor", column_data="{data[fluor][0]}", transform="e_fly_roi1"}
 [required_headers]
 "Element.symbol"              = {data="{user_input[element]}", doc_name="start"}
 

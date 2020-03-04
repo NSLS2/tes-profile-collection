@@ -1,6 +1,7 @@
 from itertools import zip_longest
 from datetime import datetime
 from pathlib import Path
+import pprint
 
 import numpy as np
 import toml
@@ -261,6 +262,7 @@ class Serializer(event_model.DocumentRouter):
             # Scan.edge_energy = Scan_edge_energy
         }
         """
+        print(f"start document")
         self._initialize_column_data_dict()
 
         # extract header information from the start document
@@ -282,7 +284,7 @@ class Serializer(event_model.DocumentRouter):
         doc : dict
             an event-descriptor document
         """
-
+        #print(f"descriptor document")
         self._uid_to_descriptor[doc["uid"]] = doc
         self._update_header_lines_from_doc(
             doc_name="descriptor", doc=doc, header_line_buffer=self._header_line_buffer
@@ -297,7 +299,7 @@ class Serializer(event_model.DocumentRouter):
         doc : dict
             an event-page document
         """
-
+        #print("event page document")
         # get the stream name for this document from the corresponding descriptor document
         stream_name = self._uid_to_descriptor[doc["descriptor"]]["name"]
 
@@ -361,14 +363,15 @@ class Serializer(event_model.DocumentRouter):
 
         """
         self._update_data_columns_from_doc(doc=doc)
-        dt = datetime.datetime.now()
+        now = datetime.datetime.now()
 
+        print(self._templated_file_prefix)
         filename = (
             self._templated_file_prefix
             + str(self._scan_number[0])
             + "-"
             + datetime.time(
-                hour=dt.hour, minute=dt.minute, second=dt.second
+                hour=now.hour, minute=now.minute, second=now.second
             ).isoformat()
             + ".xdi"
         )
