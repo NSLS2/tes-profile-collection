@@ -13,6 +13,7 @@ import bluesky.preprocessors as bpp
 
 from bluesky.callbacks import LiveGrid
 
+
 # Testing VI with Yonghua
 
 
@@ -45,17 +46,17 @@ z_centers.tolerance = 1e-15
 
 
 def xy_fly(
-    scan_title,
-    *,
-    beamline_operator,
-    dwell_time,
-    xstart,
-    xstop,
-    xstep_size,
-    ystart,
-    ystop,
-    ystep_size=None,
-    xspress3=None,
+        scan_title,
+        *,
+        beamline_operator,
+        dwell_time,
+        xstart,
+        xstop,
+        xstep_size,
+        ystart,
+        ystop,
+        ystep_size=None,
+        xspress3=None,
 ):
     """Do a x-y fly scan.
 
@@ -152,7 +153,6 @@ def xy_fly(
     # poke the struck settings
     yield from bps.mv(sclr.mcas.prescale, prescale)
     yield from bps.mv(sclr.mcas.nuse, num_xpixels)
-
     if xspress3 is not None:
         yield from bps.mv(xs.external_trig, True)
         yield from bps.mv(xspress3.total_points, num_xpixels)
@@ -271,7 +271,7 @@ E_centers.tolerance = 1e-15
 
 
 def E_fly(
-    scan_title, *, operator, element, start, stop, step_size, num_scans, xspress3=None
+        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=None
 ):
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
@@ -312,10 +312,10 @@ def E_fly(
     yield from bps.mv(E_centers, bin_centers)
 
     # The flyspeed is set by Paul by edict
-    flyspeed = 0.05
+    # flyspeed = 0.05
 
     # set up delta-tau trigger to fast motor
-    for v in ["p1600=0", "p1607=4", "p1600=1", "p1601=5"]:
+    for v in ["p1600=0", "p1607=4", "p1601=5", "p1602 = 2", "p1604 = 0", "p1600=1"]:
         yield from bps.mv(dtt, v)
         yield from bps.sleep(0.1)
 
@@ -444,6 +444,7 @@ def multi_E_fly(index=None):
         stop = data[ii, 7]
         step_size = data[ii, 8]
         num_scans = data[ii, 9]
+        flyspeed = data[ii, 11]
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
         yield from E_fly(
             scan_title,
@@ -453,5 +454,50 @@ def multi_E_fly(index=None):
             stop=stop,
             step_size=step_size,
             num_scans=num_scans,
+            flyspeed=flyspeed,
+            xspress3=xs,
+        )
+
+
+def multi_xy_fly(index=None):
+    # root = "/home/xf08bm/Desktop/Users/"
+    # root.withdraw()
+
+    # file_path = filedialog.askopenfilename()
+    file_path = "/home/xf08bm/Desktop/Users/Multi_Escan_Para.xls"
+    data = np.array(pd.read_excel(file_path, sheet_name="xy_fly", index_col=0))
+    xy_fly_stage = xy_stage
+
+    if index is None:
+        index = range(data.shape[0])
+    # @bpp.reset_positions_decorator([mono.linear])
+    for ii in index:
+        x = data[ii, 0]
+        y = data[ii, 1]
+        z = data[ii, 2]
+        scan_title = data[ii, 9]
+        operator = data[ii, 10]
+        xstart = data[ii, 3]
+        xstop = data[ii, 4]
+        xstep_size = data[ii, 5]
+        ystart = data[ii, 6]
+        ystop = data[ii, 7]
+        ystep_size = data[ii, 8]
+        dwell_time = data[ii, 11]
+        # E_e = data[ii, 12]
+        detector = data[ii, 13]
+        yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
+        yield from bps.sleep(2)
+        # yield from bps.mv(mono.energy, E_e)
+        yield from xy_fly(
+            scan_title=scan_title,
+            beamline_operator=operator,
+            dwell_time=dwell_time,
+            xstart=xstart,
+            xstop=xstop,
+            xstep_size=xstep_size,
+            ystart=ystart,
+            ystop=ystop,
+            ystep_size=ystep_size,
             xspress3=xs,
         )
