@@ -2,6 +2,8 @@ from collections import deque
 
 from ophyd.sim import NullStatus, new_uid
 
+import numpy as np
+
 
 class BlueskyFlyer:
     def __init__(self):
@@ -70,6 +72,47 @@ params_to_change.append({sample_stage.x.name: 0,
 # update function - change params
 hf = HardwareFlyer(params_to_change=params_to_change, detector=xs, motors=motors)
 # RE(bp.fly([hf]))
+
+def calc_velocity(motors, dists, vels):
+    ret_vels = []
+    # find max distance to move
+    max_dist = np.max(dists)
+    max_dist_index = dists.index(max_dist)
+    max_dist_vel = vels[max_dist_index][1]
+    time_needed = dists[max_dist_index] / max_dist_vel
+    for i in range(len(vels)):
+        if i != max_dist_index:
+            try_vel = np.round(dists[i] / time_needed, 1)
+            if try_vel < vels[i][0]:
+                try_vel = vels[i][0]
+            elif try_vel > vels[i][1]:
+                break
+            else:
+                ret_vels.append(try_vel)
+        else:
+            ret_vels.append(vels[max_dist_index][1])
+    if len(ret_vels) == len(motors):
+        # if all velocities work, return
+        return ret_vels
+    else:
+        # try using slowest motor to calculate time
+        ret_vels.clear()
+        # find slowest motor
+        slow_motor_index = np.argmin(vels, axis=0)[1]
+        slow_motor_vel = vels[slow_motor_index][1]
+        time_needed = dists[slow_motor_index] / slow_motor_vel
+        for j in range(len(vels)):
+            if j != slow_motor_index:
+                try_vel = np.round(dists[i] / time_needed, 1)
+                if try_vel < vels[i][0]:
+                    try_vel = vels[i][0]
+                elif try_vel > vels[i][1]:
+                    break
+                else:
+                    ret_vels.append(try_vel)
+            else:
+                ret_vels.append(vels[slow_motor_index][1])
+        return ret_vels
 
 def optimize():
     # do stuff
