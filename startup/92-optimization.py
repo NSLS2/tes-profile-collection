@@ -5,6 +5,7 @@ import bluesky.plan_stubs as bps
 from collections import deque
 
 from ophyd.sim import NullStatus, new_uid
+from ophyd.sim import motor1, motor2, motor3
 
 import numpy as np
 
@@ -72,10 +73,11 @@ class HardwareFlyer(BlueskyFlyer):
                                key=lambda x: self.time_to_travel[x],
                                reverse=True)[0]
 
-        self.detector.settings.acquire.put(0)
-        self.detector.settings.num_images.put(10000)
-        self.detector.settings.acquire_time.put(0.05)
-        self.detector.settings.acquire.put(1)
+        # self.detector.settings.acquire.put(0)
+        # self.detector.settings.num_images.put(10000)
+        # self.detector.settings.acquire_time.put(0.05)
+        # self.detector.settings.acquire.put(1)
+        start_detector(self.detector)
 
         # Call this function once before we start moving all motors to collect the first points.
         self._watch_function()
@@ -104,14 +106,18 @@ class HardwareFlyer(BlueskyFlyer):
 
     def complete(self):
         # all motors arrived
+        # stop detector
+        stop_detector(self.detector)
         return self.motor_move_status
 
     def describe_collect(self):
 
         return_dict = {self.name:
                            {
-                               f'{self.name}_{self.detector.channel1.rois.roi01.name}':
-                                   {'source': f'{self.name}_{self.detector.channel1.rois.roi01.name}',
+                               # f'{self.name}_{self.detector.channel1.rois.roi01.name}':
+                               f'{self.name}_intensity':
+                                   # {'source': f'{self.name}_{self.detector.channel1.rois.roi01.name}',
+                                   {'source': f'{self.name}_intensity',
                                     'dtype': 'number',
                                     'shape': []},
                             }
@@ -138,7 +144,8 @@ class HardwareFlyer(BlueskyFlyer):
                      f'{self.name}_{motor_name}_position': self.watch_positions[motor_name][ind]}
                 )
 
-            data = {f'{self.name}_{self.detector.channel1.rois.roi01.name}': self.watch_intensities[ind]}
+            # data = {f'{self.name}_{self.detector.channel1.rois.roi01.name}': self.watch_intensities[ind]}
+            data = {f'{self.name}_intensity': self.watch_intensities[ind]}
             data.update(motor_dict)
 
             print('data:\n', data)
@@ -165,7 +172,8 @@ class HardwareFlyer(BlueskyFlyer):
         #        'filled': {key: False for key in data}}
 
     def _watch_function(self, *args, **kwargs):
-        self.watch_intensities.append(self.detector.channel1.rois.roi01.value.get())
+        # self.watch_intensities.append(self.detector.channel1.rois.roi01.value.get())
+        self.watch_intensities.append(read_detector(self.detector))
         for motor_name, motor_obj in self.motors.items():
             self.watch_positions[motor_name].append(motor_obj.user_readback.get())
         self.watch_timestamps.append(ttime.time())
@@ -173,9 +181,11 @@ class HardwareFlyer(BlueskyFlyer):
 
 params_to_change = []
 
-motors = {sample_stage.x.name: sample_stage.x,
-          sample_stage.y.name: sample_stage.y,
-          sample_stage.z.name: sample_stage.z,}
+
+
+# motors = {sample_stage.x.name: sample_stage.x,
+#           sample_stage.y.name: sample_stage.y,
+#           sample_stage.z.name: sample_stage.z,}
 
 """
 # Velocities (same for each motor x, y, z)
@@ -205,84 +215,102 @@ Out[11]: 22.22
 """
 
 # TODO: merge "params_to_change" and "velocities" lists of dictionaries to become lists of dicts of dicts.
-params_to_change.append({sample_stage.x.name: 72,
-                         sample_stage.y.name: 41,
-                         sample_stage.z.name: 20})
-
-params_to_change.append({sample_stage.x.name: 68,
-                         sample_stage.y.name: 43,
-                         sample_stage.z.name: 19})
-
-params_to_change.append({sample_stage.x.name: 71,
-                         sample_stage.y.name: 39,
-                         sample_stage.z.name: 22.9})
+# params_to_change.append({sample_stage.x.name: 72,
+#                          sample_stage.y.name: 41,
+#                          sample_stage.z.name: 20})
+#
+# params_to_change.append({sample_stage.x.name: 68,
+#                          sample_stage.y.name: 43,
+#                          sample_stage.z.name: 19})
+#
+# params_to_change.append({sample_stage.x.name: 71,
+#                          sample_stage.y.name: 39,
+#                          sample_stage.z.name: 22.9})
 
 # update function - change params
 
 # RE(bp.fly([hf]))
 
 
-def calc_velocity(motors, dists, velocity_limits):
-    # TODO: update this to handle a max velocity
+def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocity=None):
     ret_vels = []
-    if any([velocity_limits[i][1] == 0 for i in range(len(velocity_limits))]):
-        # make sure all motors have upper limits > 0
-        raise ValueError("Upper velocity limit must be > 0 for every motor.")
+    # check that max_velocity is not None if at least 1 motor doesn't have upper velocity limit
+    if any([velocity_limits[i]['high'] == 0 for i in range(len(velocity_limits))]) and max_velocity is None:
+        raise ValueError('max_velocity must be set if there is at least 1 motor without upper velocity limit')
     if all([d == 0 for d in dists]):
+        # TODO: fix this to handle when motors don't need to move
         # if dists are all 0, set all motors to min velocity
         for i in range(len(velocity_limits)):
-            ret_vels.append(velocity_limits[i][0])
+            ret_vels.append(velocity_limits[i]['low'])
         return ret_vels
     else:
         # check for negative distances
         if any([d < 0.0 for d in dists]):
-             raise ValueError("Distances must be positive. Try using abs()")
-        # find max distance to move
-        max_dist = np.max(dists)
-        max_dist_index = dists.index(max_dist)
-        max_dist_vel = velocity_limits[max_dist_index][1]
-        time_needed = dists[max_dist_index] / max_dist_vel
+            raise ValueError("Distances must be positive. Try using abs()")
+        # create list of upper velocity limits for convenience
+        upper_velocity_bounds = []
+        for j in range(len(velocity_limits)):
+            upper_velocity_bounds.append(velocity_limits[j]['high'])
+        # find max distances to move and pick the slowest motor of those with max dists
+        max_dist_lowest_vel = np.where(dists == np.max(dists))[0]
+        max_dist_to_move = -1
+        for j in max_dist_lowest_vel:
+            if dists[j] >= max_dist_to_move:
+                max_dist_to_move = dists[j]
+                motor_index_to_use = j
+        max_dist_vel = upper_velocity_bounds[motor_index_to_use]
+        if max_velocity is not None:
+            if max_dist_vel > max_velocity or max_dist_vel == 0:
+                max_dist_vel = float(max_velocity)
+        time_needed = dists[motor_index_to_use] / max_dist_vel
         for i in range(len(velocity_limits)):
-            if i != max_dist_index:
+            if i != motor_index_to_use:
                 try_vel = np.round(dists[i] / time_needed, 1)
-                if try_vel < velocity_limits[i][0]:
-                    try_vel = velocity_limits[i][0]
-                elif try_vel > velocity_limits[i][1]:
-                    break
+                if try_vel < min_velocity:
+                    try_vel = min_velocity
+                if try_vel < velocity_limits[i]['low']:
+                    try_vel = velocity_limits[i]['low']
+                elif try_vel > velocity_limits[i]['high']:
+                    if upper_velocity_bounds[i] == 0:
+                        pass
+                    else:
+                        break
                 ret_vels.append(try_vel)
             else:
-                ret_vels.append(velocity_limits[max_dist_index][1])
+                ret_vels.append(max_dist_vel)
         if len(ret_vels) == len(motors):
             # if all velocities work, return velocities
             return ret_vels
         else:
             # use slowest motor that moves the most
             ret_vels.clear()
-            upper_velocity_bounds = []
-            for j in range(len(velocity_limits)):
-                upper_velocity_bounds.append(velocity_limits[j][1])
             lowest_velocity_motors = np.where(upper_velocity_bounds == np.min(upper_velocity_bounds))[0]
-            if len(lowest_velocity_motors) == 1:
-                motor_index_to_use = lowest_velocity_motors[0]
-            else:
-                max_dist_to_move = -1
-                for k in lowest_velocity_motors:
-                    if dists[k] >= max_dist_to_move:
-                        max_dist_to_move = dists[k]
-                        motor_index_to_use = k
+            max_dist_to_move = -1
+            for k in lowest_velocity_motors:
+                if dists[k] >= max_dist_to_move:
+                    max_dist_to_move = dists[k]
+                    motor_index_to_use = k
             slow_motor_vel = upper_velocity_bounds[motor_index_to_use]
+            if max_velocity is not None:
+                if slow_motor_vel > max_velocity or slow_motor_vel == 0:
+                    slow_motor_vel = float(max_velocity)
             time_needed = dists[motor_index_to_use] / slow_motor_vel
             for k in range(len(velocity_limits)):
                 if k != motor_index_to_use:
                     try_vel = np.round(dists[k] / time_needed, 1)
-                    if try_vel < velocity_limits[k][0]:
-                        try_vel = velocity_limits[k][0]
-                    elif try_vel > velocity_limits[k][1]:
-                        print("Don't want to be here")
-                        return None
+                    if try_vel < min_velocity:
+                        try_vel = min_velocity
+                    if try_vel < velocity_limits[k]['low']:
+                        try_vel = velocity_limits[k]['low']
+                    elif try_vel > velocity_limits[k]['high']:
+                        if upper_velocity_bounds[k] == 0:
+                            pass
+                        else:
+                            print("Don't want to be here")
+                            raise ValueError("Something terribly wrong happened")
                     ret_vels.append(try_vel)
                 else:
-                    ret_vels.append(upper_velocity_bounds[motor_index_to_use])
+                    ret_vels.append(slow_motor_vel)
             return ret_vels
 
 
@@ -292,15 +320,28 @@ hf_flyers = []
 def optimize():
     velocities_list = []
     distances_list = []
-    for param in params_to_change:
+    for i, param in enumerate(params_to_change):
         velocities_dict = {}
         distances_dict = {}
         dists = []
         velocity_limits = []
-        for motor_name, motor_obj in motors.items():
-            velocity_limits.append(tuple(motor_obj.velocity.limits))
-            dists.append(abs(param[motor_name] - motor_obj.user_readback.get()))
-        velocities = calc_velocity(motors.keys(), dists, velocity_limits)
+        if i == 0:
+            for motor_name, motor_obj in motors.items():
+                velocity_limit_dict = {'motor': motor_name,
+                                       'low': motor_obj.velocity.low_limit,
+                                       'high': motor_obj.velocity.high_limit}
+                velocity_limits.append(velocity_limit_dict)
+                dists.append(abs(param[motor_name] - motor_obj.user_readback.get()))
+        else:
+            for motor_name, motor_obj in motors.items():
+                velocity_limit_dict = {'motor': motor_name,
+                                       'low': motor_obj.velocity.low_limit,
+                                       'high': motor_obj.velocity.high_limit}
+                velocity_limits.append(velocity_limit_dict)
+                dists.append(abs(param[motor_name] - params_to_change[i - 1][motor_name]))
+        velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=10, min_velocity=0)
+        if velocities is None:
+            velocities = [5.0, 5.0, 5.0]
         for motor_name, vel, dist in zip(motors, velocities, dists):
             velocities_dict[motor_name] = vel
             distances_dict[motor_name] = dist
@@ -312,7 +353,10 @@ def optimize():
     for dist, vel in zip(distances_list, velocities_list):
         times_dict = {}
         for motor_name, motor_obj in motors.items():
-            time_ = dist[motor_name] / vel[motor_name]
+            if vel[motor_name] == 0:
+                time_ = 0
+            else:
+                time_ = dist[motor_name] / vel[motor_name]
             times_dict[motor_name] = time_
         times_list.append(times_dict)
 
@@ -326,13 +370,13 @@ def optimize():
     [{'sample_stage_x': 55, 'sample_stage_y': 60, 'sample_stage_z': 15},
      {'sample_stage_x': 20, 'sample_stage_y': 90, 'sample_stage_z': 18},
      {'sample_stage_x': 80, 'sample_stage_y': 36, 'sample_stage_z': 22.9}]
-    
+
     In [3]: velocities_list                                                                                           
     Out[3]: 
     [{'sample_stage_x': 8.0, 'sample_stage_y': 11.0, 'sample_stage_z': 4.0},
      {'sample_stage_x': 10.9, 'sample_stage_y': 11.0, 'sample_stage_z': 0.9},
      {'sample_stage_x': 11.0, 'sample_stage_y': 4.2, 'sample_stage_z': 0.7}]
-    
+
     In [4]: times_list                                                                                                
     Out[4]: 
     [{'sample_stage_x': 1.8125,
@@ -345,7 +389,6 @@ def optimize():
       'sample_stage_y': 0.9523809523809523,
       'sample_stage_z': 0.9714285714285711}]
     """
-
 
     for param, vel, time_ in zip(params_to_change, velocities_list, times_list):
         hf = HardwareFlyer(params_to_change=param,
