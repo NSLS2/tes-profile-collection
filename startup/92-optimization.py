@@ -7,6 +7,7 @@ from collections import deque
 from ophyd.sim import NullStatus, new_uid
 
 import numpy as np
+import random
 
 
 class BlueskyFlyer:
@@ -130,7 +131,7 @@ class HardwareFlyer(BlueskyFlyer):
                                                                  'dtype': 'number', 'shape': []}
         return_dict[self.name].update(motor_dict)
 
-        print('describe_collect:\n', return_dict)
+        # print('describe_collect:\n', return_dict)
 
         return return_dict
 
@@ -147,7 +148,7 @@ class HardwareFlyer(BlueskyFlyer):
             data = {f'{self.name}_intensity': self.watch_intensities[ind]}
             data.update(motor_dict)
 
-            print('data:\n', data)
+            # print('data:\n', data)
 
             yield {'data': data,
                    'timestamps': {key: self.watch_timestamps[ind] for key in data},
@@ -181,9 +182,8 @@ class HardwareFlyer(BlueskyFlyer):
 params_to_change = []
 
 
-
-# motors = {sample_stage.x.name: sample_stage.x,
-#           sample_stage.y.name: sample_stage.y,
+motors = {sample_stage.x.name: sample_stage.x,
+          sample_stage.y.name: sample_stage.y,}
 #           sample_stage.z.name: sample_stage.z,}
 
 """
@@ -214,17 +214,27 @@ Out[11]: 22.22
 """
 
 # TODO: merge "params_to_change" and "velocities" lists of dictionaries to become lists of dicts of dicts.
-# params_to_change.append({sample_stage.x.name: 72,
-#                          sample_stage.y.name: 41,
-#                          sample_stage.z.name: 20})
-#
-# params_to_change.append({sample_stage.x.name: 68,
-#                          sample_stage.y.name: 43,
-#                          sample_stage.z.name: 19})
-#
-# params_to_change.append({sample_stage.x.name: 71,
-#                          sample_stage.y.name: 39,
-#                          sample_stage.z.name: 22.9})
+# x limits = 45, 55
+# y limits = 70, 80
+params_to_change.append({sample_stage.x.name: 45,
+                         sample_stage.y.name: 79})
+                         # sample_stage.z.name: 20})
+
+params_to_change.append({sample_stage.x.name: 53,
+                         sample_stage.y.name: 71})
+                         # sample_stage.z.name: 19})
+
+params_to_change.append({sample_stage.x.name: 51,
+                         sample_stage.y.name: 77})
+                         # sample_stage.z.name: 22.9})
+
+params_to_change.append({sample_stage.x.name: 54,
+                         sample_stage.y.name: 75})
+                         # sample_stage.z.name: 22.9})
+
+params_to_change.append({sample_stage.x.name: 47,
+                         sample_stage.y.name: 72})
+                         # sample_stage.z.name: 22.9})
 
 # update function - change params
 
@@ -264,7 +274,7 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
         time_needed = dists[motor_index_to_use] / max_dist_vel
         for i in range(len(velocity_limits)):
             if i != motor_index_to_use:
-                try_vel = np.round(dists[i] / time_needed, 1)
+                try_vel = np.round(dists[i] / time_needed, 5)
                 if try_vel < min_velocity:
                     try_vel = min_velocity
                 if try_vel < velocity_limits[i]['low']:
@@ -296,7 +306,7 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
             time_needed = dists[motor_index_to_use] / slow_motor_vel
             for k in range(len(velocity_limits)):
                 if k != motor_index_to_use:
-                    try_vel = np.round(dists[k] / time_needed, 1)
+                    try_vel = np.round(dists[k] / time_needed, 5)
                     if try_vel < min_velocity:
                         try_vel = min_velocity
                     if try_vel < velocity_limits[k]['low']:
@@ -314,12 +324,31 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
 
 
 hf_flyers = []
+bound_vals = [(45, 55), (70, 80)]
+motor_bounds = {}
+for i, motor in enumerate(motors.items()):
+    motor_bounds[motor[0]] = {'low': bound_vals[i][0], 'high': bound_vals[i][1]}
 
 
-def optimize():
+def optimize(motors=motors, bounds=motor_bounds, popsize=5, crosspb=.8, mut=.1,
+             mut_type='rand/1', threshold=0, max_iter=100):
+    # create initial population
+    initial_population = []
+    for i in range(popsize):
+        indv = {}
+        if i == 0:
+            for motor_name, motor_obj in motors.items():
+                indv[motor_name] = motor_obj.user_readback.get()
+        else:
+            for motor_name, motor_obj in motors.items():
+                indv[motor_name] = random.uniform(bounds[motor_name]['low'],
+                                                  bounds[motor_name]['high'])
+        initial_population.append(indv)
+    print('INITIAL POPULATION:', initial_population)
+
     velocities_list = []
     distances_list = []
-    for i, param in enumerate(params_to_change):
+    for i, param in enumerate(initial_population):
         velocities_dict = {}
         distances_dict = {}
         dists = []
@@ -330,17 +359,16 @@ def optimize():
                                        'low': motor_obj.velocity.low_limit,
                                        'high': motor_obj.velocity.high_limit}
                 velocity_limits.append(velocity_limit_dict)
-                dists.append(abs(param[motor_name] - motor_obj.user_readback.get()))
+                dists.append(0)
         else:
             for motor_name, motor_obj in motors.items():
                 velocity_limit_dict = {'motor': motor_name,
                                        'low': motor_obj.velocity.low_limit,
                                        'high': motor_obj.velocity.high_limit}
                 velocity_limits.append(velocity_limit_dict)
-                dists.append(abs(param[motor_name] - params_to_change[i - 1][motor_name]))
-        velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=10, min_velocity=0)
-        if velocities is None:
-            velocities = [5.0, 5.0, 5.0]
+                dists.append(abs(param[motor_name] - initial_population[i - 1][motor_name]))
+        # velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=0.2, min_velocity=0)
+        velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=1.3, min_velocity=0)
         for motor_name, vel, dist in zip(motors, velocities, dists):
             velocities_dict[motor_name] = vel
             distances_dict[motor_name] = dist
@@ -398,8 +426,108 @@ def optimize():
 
         hf_flyers.append(hf)
 
+# get the data from databroker
+    current_fly_data = []
+    max_intensities = []
+    max_int_pos = []
+    for i in range(-popsize, 0, 1):
+        current_fly_data.append(db[i].table('tes_hardware_flyer'))
+    for t in current_fly_data:
+        positions_dict = {}
+        max_int_index = t['tes_hardware_flyer_intensity'].idxmax()
+        for motor_name in motor_bounds.keys():
+            positions_dict[motor_name] = t[f'tes_hardware_flyer_{motor_name}_position'][max_int_index]
+        max_intensities.append(t['tes_hardware_flyer_intensity'][max_int_index])
+        max_int_pos.append(positions_dict)  # becomes population
+
+    # mutate
+    # crossover
+    # select
+    # get best solution
+    # randomize worst individual and repeat from mutate
+
+
+def ensure_bounds(vec, bounds):
+    # Makes sure each individual stays within bounds and adjusts them if they aren't
+    vec_new = {}
+    # cycle through each variable in vector
+    for motor_name, pos in vec.items():
+        # variable exceeds the minimum boundary
+        if pos < bounds[motor_name]['low']:
+            vec_new[motor_name] = bounds[motor_name]['low']
+        # variable exceeds the maximum boundary
+        if pos > bounds[motor_name]['high']:
+            vec_new[motor_name] = bounds[motor_name]['high']
+        # the variable is fine
+        if bounds[motor_name]['low'] <= pos <= bounds[motor_name]['high']:
+            vec_new[motor_name] = pos
+    return vec_new
+
+
+def rand_1(pop, popsize, target_indx, mut, bounds):
+    # mutation strategy
+    # v = x_r1 + F * (x_r2 - x_r3)
+    idxs = [idx for idx in range(popsize) if idx != target_indx]
+    a, b, c = np.random.choice(idxs, 3, replace=False)
+    x_1 = pop[a]
+    x_2 = pop[b]
+    x_3 = pop[c]
+
+    x_diff = {}
+    for motor_name, pos in x_2.items():
+        x_diff[motor_name] = x_2[motor_name] - x_3[motor_name]
+    v_donor = {}
+    for motor_name, pos in x_1.items():
+        v_donor[motor_name] = x_1[motor_name] + mut * x_diff[motor_name]
+    v_donor = ensure_bounds(v_donor, bounds)
+    return v_donor
+
+
+def mutate(population, strategy, mut, bounds, ind_sol):
+    mutated_indv = []
+    for i in range(len(population)):
+        if strategy == 'rand/1':
+            v_donor = rand_1(population, len(population), i, mut, bounds)
+        # elif strategy == 'best/1':
+        #     v_donor = best_1(population, len(population), i, mut, bounds, ind_sol)
+        # elif strategy == 'current-to-best/1':
+        #     v_donor = current_to_best_1(population, len(population), i, mut, bounds, ind_sol)
+        # elif strategy == 'best/2':
+        #     v_donor = best_2(population, len(population), i, mut, bounds, ind_sol)
+        # elif strategy == 'rand/2':
+        #     v_donor = rand_2(population, len(population), i, mut, bounds)
+        mutated_indv.append(v_donor)
+    return mutated_indv
+
+
+def crossover(population, mutated_indv, crosspb):
+    crossover_indv = []
+    for i in range(len(population)):
+        x_t = population[i]
+        v_trial = {}
+        for motor_name, pos in x_t.items():
+            crossover_val = random.random()
+            if crossover_val <= crosspb:
+                v_trial[motor_name] = mutated_indv[i][motor_name]
+            else:
+                v_trial[motor_name] = x_t[motor_name]
+        crossover_indv.append(v_trial)
+    return crossover_indv
+
+
+# def select(population, crossover_indv, ind_sol, motors):
+#     positions = [elm for elm in crossover_indv]
+#     positions.insert(0, population[0])
+#     positions, evals = omea(positions, motors)
+#     positions = positions[1:]
+#     evals = evals[1:]
+#     for i in range(len(evals)):
+#         if evals[i] > ind_sol[i]:
+#             population[i] = positions[i]
+#             ind_sol[i] = evals[i]
+#     return population, ind_sol
+
 
 def move_back():
-    yield from bps.mv(sample_stage.x, 69.5,
-                      sample_stage.y, 40,
-                      sample_stage.z, 22.22)
+    yield from bps.mv(sample_stage.x, 50,
+                      sample_stage.y, 75)
