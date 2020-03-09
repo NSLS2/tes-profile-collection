@@ -5,7 +5,6 @@ import bluesky.plan_stubs as bps
 from collections import deque
 
 from ophyd.sim import NullStatus, new_uid
-from ophyd.sim import motor1, motor2, motor3
 
 import numpy as np
 
@@ -92,7 +91,7 @@ class HardwareFlyer(BlueskyFlyer):
         #
         # ZeroDivisionError: float division by zero
         for motor_name, motor_obj in self.motors.items():
-            motor_obj.velocity.put(self.velocities[motor_name] / 20)
+            motor_obj.velocity.put(self.velocities[motor_name])
 
         for motor_name, motor_obj in self.motors.items():
             if motor_name == slowest_motor:
