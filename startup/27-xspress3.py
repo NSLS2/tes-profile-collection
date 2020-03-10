@@ -38,7 +38,6 @@ from hxntools.detectors.xspress3 import (
     Xspress3FileStore,
     logger,
 )
-from databroker.assets.handlers import Xspress3HDF5Handler, HandlerBase
 from ophyd.signal import set_and_wait
 from enum import Enum
 from ophyd.signal import set_and_wait
@@ -51,18 +50,6 @@ class TESMode(Enum):
     step = 1
     fly = 2
 
-
-class BulkXSPRESS(HandlerBase):
-    HANDLER_NAME = "XPS3_FLY"
-
-    def __init__(self, resource_fn):
-        self._handle = h5py.File(resource_fn, "r")
-
-    def __call__(self):
-        return self._handle["entry/instrument/detector/data"][:]
-
-
-db.reg.register_handler(BulkXSPRESS.HANDLER_NAME, BulkXSPRESS, overwrite=True)
 
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 
@@ -79,8 +66,12 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
     @property
     def filestore_spec(self):
         if self.parent._mode is TESMode.fly:
-            return BulkXSPRESS.HANDLER_NAME
-        return Xspress3HDF5Handler.HANDLER_NAME
+            # Both "XPS3_FLY" and "XSP3_FLY" point to the same 
+            # reader in area-detector handers. "XPS" seems like it
+            # originated as a typo, but we'll leave it for consistency
+            # of documents through time until / unless we do a migration
+            # to "fix" the old documents in the database.
+           return 'XPS3_FLY'
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         if self.parent._mode is TESMode.step:
