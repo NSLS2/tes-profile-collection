@@ -669,13 +669,32 @@ def rand_1(pop, popsize, target_indx, mut, bounds):
     return v_donor
 
 
+def best_1(pop, popsize, target_indx, mut, bounds, ind_sol):
+    # mutation strategy
+    # v = x_best + F * (x_r1 - x_r2)
+    x_best = pop[ind_sol.index(np.max(ind_sol))]
+    idxs = [idx for idx in range(popsize) if idx != target_indx]
+    a, b = np.random.choice(idxs, 2, replace=False)
+    x_1 = pop[a]
+    x_2 = pop[b]
+
+    x_diff = {}
+    for motor_name, pos in x_1.items():
+        x_diff[motor_name] = x_1[motor_name] - x_2[motor_name]
+    v_donor = {}
+    for motor_name, pos in x_best.items():
+        v_donor[motor_name] = x_best[motor_name] + mut * x_diff[motor_name]
+    v_donor = ensure_bounds(v_donor, bounds)
+    return v_donor
+
+
 def mutate(population, strategy, mut, bounds, ind_sol):
     mutated_indv = []
     for i in range(len(population)):
         if strategy == 'rand/1':
             v_donor = rand_1(population, len(population), i, mut, bounds)
-        # elif strategy == 'best/1':
-        #     v_donor = best_1(population, len(population), i, mut, bounds, ind_sol)
+        elif strategy == 'best/1':
+            v_donor = best_1(population, len(population), i, mut, bounds, ind_sol)
         # elif strategy == 'current-to-best/1':
         #     v_donor = current_to_best_1(population, len(population), i, mut, bounds, ind_sol)
         # elif strategy == 'best/2':
