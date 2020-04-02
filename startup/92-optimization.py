@@ -1,5 +1,6 @@
 import time as ttime
 import bluesky.plans as bp
+import bluesky.plan_stubs as bps
 
 from collections import deque
 
@@ -150,32 +151,23 @@ class HardwareFlyer(BlueskyFlyer):
         #        'filled': {key: False for key in data}}
 
     def _watch_function(self, *args, **kwargs):
-        # pos_list = []
-        # for motor_name, motor_obj in self.motors.items():
-        #     pos_list.append(motor_obj.user_readback.get())
-        #     self.watch_positions[motor_name].append(motor_obj.user_readback.get())
-        # self.watch_intensities.append(read_detector(self.detector, pos_list))
-        self.watch_intensities.append(read_detector(self.detector))
-        for motor_name, motor_obj in self.motors.items():
-            self.watch_positions[motor_name].append(motor_obj.user_readback.get())
-        self.watch_timestamps.append(ttime.time())
+        self.watch_positions, self.watch_intensities,\
+        self.watch_timestamps = watch_function(self.motors, self.detector)
 
 
-motors = {sample_stage.x.name: sample_stage.x,
-          sample_stage.y.name: sample_stage.y,
-          sample_stage.z.name: sample_stage.z,}
+motor_dict = {sample_stage.x.name: sample_stage.x,
+              sample_stage.y.name: sample_stage.y,
+              sample_stage.z.name: sample_stage.z,}
 
 bound_vals = [(75, 79), (37, 41), (19, 21)]
 motor_bounds = {}
-for i, motor in enumerate(motors.items()):
+for i, motor in enumerate(motor_dict.items()):
     motor_bounds[motor[0]] = {'low': bound_vals[i][0], 'high': bound_vals[i][1]}
 
 # TODO: change motor list to be dict of dicts;
 #  {motor_name: {position: val}}, {motor_name: {bounds: [low, high]}}
 
 # TODO: merge "params_to_change" and "velocities" lists of dictionaries to become lists of dicts of dicts.
-# x limits = 45, 55
-# y limits = 70, 80
 
 
 def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocity=None):
@@ -354,7 +346,6 @@ def generate_flyers(motors, detector, population, max_velocity, min_velocity):
     return hf_flyers
 
 
-# def omea_evaluation(num_of_scans, uids, flyer_name, intensity_name, field_name):
 def omea_evaluation(motors, uids, flyer_name, intensity_name, field_name):
     # get the data from databroker
     current_fly_data = []
@@ -433,6 +424,9 @@ def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=
     field_name : str, optional
                  Default is 'position'
     """
+    global optimized_positions
+    # check if bounds passed in are within the actual bounds of the motors
+    check_opt_bounds(motors, bounds)
     # create initial population
     initial_population = []
     for i in range(popsize):
@@ -445,13 +439,8 @@ def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=
                 indv[motor_name] = random.uniform(bounds[motor_name]['low'],
                                                   bounds[motor_name]['high'])
         initial_population.append(indv)
-    print('INITIAL POPULATION:')
-    for i in initial_population:
-        print(i)
-
     uid_list = (yield from fly_plan(motors=motors, detector=detector, population=initial_population,
                                     max_velocity=max_velocity, min_velocity=min_velocity))
-    # pop_positions, pop_intensity = omea_evaluation(num_of_scans=len(initial_population), uids=uid_list,
     pop_positions, pop_intensity = omea_evaluation(motors=motors, uids=uid_list,
                                                    flyer_name=flyer_name, intensity_name=intensity_name,
                                                    field_name=field_name)
@@ -460,12 +449,8 @@ def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=
     consec_best_ctr = 0  # counting successive generations with no change to best value
     old_best_fit_val = 0
     best_fitness = [0]
-    # while not (v > 1):
     while not ((v > max_iter) or (consec_best_ctr >= 5 and old_best_fit_val >= threshold)):
         print(f'GENERATION {v + 1}')
-        print('CURRENT GENERATION')
-        for i in pop_positions:
-            print(i)
         best_gen_sol = []
         # mutate
         mutated_trial_pop = mutate(population=pop_positions, strategy=mut_type, mut=mut,
@@ -517,12 +502,29 @@ def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=
 
     # best solution overall should be last one
     x_best = best_gen_sol[-1]
+    optimized_positions = x_best
     print('\nThe best individual is', x_best, 'with a fitness of', gen_best)
     print('It took', v, 'generations')
+
+    print('Moving to optimal positions')
+    yield from move_to_optimized_positions(motors, optimized_positions)
 
     plot_index = np.arange(len(best_fitness))
     plt.figure()
     plt.plot(plot_index, best_fitness)
+
+
+def check_opt_bounds(motors, bounds):
+    for motor_name, bound in bounds.items():
+        if bound['low'] > bound['high']:
+            raise ValueError(f"Invalid bounds for {motor_name}. Current bounds are set to "
+                             f"{bound['low'],bound['high']}, but lower bound is greater "
+                             f"than upper bound")
+        if bound['low'] < motors[motor_name].low_limit or bound['high']\
+                > motors[motor_name].high_limit:
+            raise ValueError(f"Invalid bounds for {motor_name}. Current bounds are set to "
+                             f"{bound['low'],bound['high']}, but {motor_name} has bounds of "
+                             f"{motors[motor_name].limits}")
 
 
 def ensure_bounds(vec, bounds):
@@ -648,3 +650,13 @@ def select(population, intensities, motors, uids, flyer_name, intensity_name, fi
             population[i] = new_population[i]
             intensities[i] = new_intensities[i]
     return population, intensities
+
+
+def move_to_optimized_positions(motors, opt_pos):
+    """
+    Move motors to best postions
+
+    Call after running optimize
+    """
+    for motor_obj, pos in zip(motors.values(), opt_pos.values()):
+        yield from bps.mv(motor_obj, pos)
