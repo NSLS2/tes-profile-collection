@@ -1,6 +1,5 @@
 import time as ttime
 import bluesky.plans as bp
-import bluesky.plan_stubs as bps
 
 from collections import deque
 
@@ -43,7 +42,8 @@ class BlueskyFlyer:
 
 
 class HardwareFlyer(BlueskyFlyer):
-    def __init__(self, params_to_change, velocities, time_to_travel, detector, motors):
+    def __init__(self, params_to_change, velocities, time_to_travel,
+                 detector, motors):
         super().__init__()
         self.name = 'tes_hardware_flyer'
 
@@ -73,24 +73,11 @@ class HardwareFlyer(BlueskyFlyer):
                                key=lambda x: self.time_to_travel[x],
                                reverse=True)[0]
 
-        # self.detector.settings.acquire.put(0)
-        # self.detector.settings.num_images.put(10000)
-        # self.detector.settings.acquire_time.put(0.05)
-        # self.detector.settings.acquire.put(1)
         start_detector(self.detector)
 
         # Call this function once before we start moving all motors to collect the first points.
         self._watch_function()
 
-        # TODO: add a check for zero division:
-        # ~/.ipython/profile_collection/startup/92-optimization.py in calc_velocity(motors, dists, velocity_limits)
-        #     169     for i in range(len(velocity_limits)):
-        #     170         if i != max_dist_index:
-        # --> 171             try_vel = np.round(dists[i] / time_needed, 1)
-        #     172             if try_vel < velocity_limits[i][0]:
-        #     173                 try_vel = velocity_limits[i][0]
-        #
-        # ZeroDivisionError: float division by zero
         for motor_name, motor_obj in self.motors.items():
             motor_obj.velocity.put(self.velocities[motor_name])
 
@@ -106,22 +93,18 @@ class HardwareFlyer(BlueskyFlyer):
 
     def complete(self):
         # all motors arrived
-        # stop detector
         stop_detector(self.detector)
         return self.motor_move_status
 
     def describe_collect(self):
 
         return_dict = {self.name:
-                           {
-                               # f'{self.name}_{self.detector.channel1.rois.roi01.name}':
-                               f'{self.name}_intensity':
-                                   # {'source': f'{self.name}_{self.detector.channel1.rois.roi01.name}',
-                                   {'source': f'{self.name}_intensity',
-                                    'dtype': 'number',
-                                    'shape': []},
-                            }
+                       {f'{self.name}_intensity':
+                        {'source': f'{self.name}_intensity',
+                         'dtype': 'number',
+                         'shape': []},
                         }
+                       }
 
         motor_dict = {}
         for motor_name, motor_obj in self.motors.items():
@@ -130,8 +113,6 @@ class HardwareFlyer(BlueskyFlyer):
              motor_dict[f'{self.name}_{motor_name}_position'] = {'source': f'{self.name}_{motor_name}_position',
                                                                  'dtype': 'number', 'shape': []}
         return_dict[self.name].update(motor_dict)
-
-        # print('describe_collect:\n', return_dict)
 
         return return_dict
 
@@ -144,18 +125,15 @@ class HardwareFlyer(BlueskyFlyer):
                      f'{self.name}_{motor_name}_position': self.watch_positions[motor_name][ind]}
                 )
 
-            # data = {f'{self.name}_{self.detector.channel1.rois.roi01.name}': self.watch_intensities[ind]}
             data = {f'{self.name}_intensity': self.watch_intensities[ind]}
             data.update(motor_dict)
-
-            # print('data:\n', data)
 
             yield {'data': data,
                    'timestamps': {key: self.watch_timestamps[ind] for key in data},
                    'time': self.watch_timestamps[ind],
                    'filled': {key: False for key in data}}
 
-        ## This will produce one event with dictionaries in the <...>_parameters field.
+        # # This will produce one event with dictionaries in the <...>_parameters field.
         # motor_params_dict = {}
         # for motor_name, motor_obj in self.motors.items():
         #     motor_parameters = {'timestamps': self.watch_timestamps,
@@ -172,73 +150,66 @@ class HardwareFlyer(BlueskyFlyer):
         #        'filled': {key: False for key in data}}
 
     def _watch_function(self, *args, **kwargs):
-        # self.watch_intensities.append(self.detector.channel1.rois.roi01.value.get())
+        # pos_list = []
+        # for motor_name, motor_obj in self.motors.items():
+        #     pos_list.append(motor_obj.user_readback.get())
+        #     self.watch_positions[motor_name].append(motor_obj.user_readback.get())
+        # self.watch_intensities.append(read_detector(self.detector, pos_list))
         self.watch_intensities.append(read_detector(self.detector))
         for motor_name, motor_obj in self.motors.items():
             self.watch_positions[motor_name].append(motor_obj.user_readback.get())
         self.watch_timestamps.append(ttime.time())
 
 
-params_to_change = []
-
-
 motors = {sample_stage.x.name: sample_stage.x,
-          sample_stage.y.name: sample_stage.y,}
-#           sample_stage.z.name: sample_stage.z,}
+          sample_stage.y.name: sample_stage.y,
+          sample_stage.z.name: sample_stage.z,}
 
-"""
-# Velocities (same for each motor x, y, z)
-In [3]: sample_stage.z.velocity.limits                                                                            
-Out[3]: (0.0, 11.0)
-# Limits
-In [4]: sample_stage.x.limits                                                                                     
-Out[4]: (16.0, 88.2)
-In [5]: sample_stage.y.limits                                                                                     
-Out[5]: (32.0, 116.9)
-In [12]: sample_stage.z.limits                                                                                    
-Out[12]: (14.0, 23.0)
-# Current positions
-In [10]: sample_stage.x.user_readback.get()                                                                       
-Out[10]: 69.5
-In [9]: sample_stage.y.user_readback.get()                                                                        
-Out[9]: 40.0
-In [11]: sample_stage.z.user_readback.get()                                                                       
-Out[11]: 22.22
-"""
+bound_vals = [(75, 79), (37, 41), (19, 21)]
+motor_bounds = {}
+for i, motor in enumerate(motors.items()):
+    motor_bounds[motor[0]] = {'low': bound_vals[i][0], 'high': bound_vals[i][1]}
+
+# TODO: change motor list to be dict of dicts;
+#  {motor_name: {position: val}}, {motor_name: {bounds: [low, high]}}
 
 # TODO: merge "params_to_change" and "velocities" lists of dictionaries to become lists of dicts of dicts.
 # x limits = 45, 55
 # y limits = 70, 80
-params_to_change.append({sample_stage.x.name: 45,
-                         sample_stage.y.name: 79})
-                         # sample_stage.z.name: 20})
-
-params_to_change.append({sample_stage.x.name: 53,
-                         sample_stage.y.name: 71})
-                         # sample_stage.z.name: 19})
-
-params_to_change.append({sample_stage.x.name: 51,
-                         sample_stage.y.name: 77})
-                         # sample_stage.z.name: 22.9})
-
-params_to_change.append({sample_stage.x.name: 54,
-                         sample_stage.y.name: 75})
-                         # sample_stage.z.name: 22.9})
-
-params_to_change.append({sample_stage.x.name: 47,
-                         sample_stage.y.name: 72})
-                         # sample_stage.z.name: 22.9})
-
-# update function - change params
-
-# RE(bp.fly([hf]))
 
 
 def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocity=None):
+    """
+    Calculates velocities of all motors
+
+    Velocities calculated will allow motors to approximately start and stop together
+
+    Parameters
+    ----------
+    motors : dict
+             In the format {motor_name: motor_object}
+             Ex. {sample_stage.x.name: sample_stage.x}
+    dists :
+    velocity_limits :
+    max_velocity : float
+                   Set this to limit the absolute highest velocity of any motor
+    min_velocity : float
+                   Set this to limit the absolute lowest velocity of any motor
+
+    Returns
+    -------
+    ret_vels : list
+               List of velocities for each motor
+    """
     ret_vels = []
     # check that max_velocity is not None if at least 1 motor doesn't have upper velocity limit
-    if any([velocity_limits[i]['high'] == 0 for i in range(len(velocity_limits))]) and max_velocity is None:
-        raise ValueError('max_velocity must be set if there is at least 1 motor without upper velocity limit')
+    if any([lim['high'] == 0 for lim in velocity_limits]) and max_velocity is None:
+        vel_max_lim_0 = []
+        for lim in velocity_limits:
+            if lim['high'] == 0:
+                vel_max_lim_0.append(lim['motor'])
+        raise ValueError(f'The following motors have unset max velocity limits: {vel_max_lim_0}. '
+                         f'max_velocity must be set')
     if all([d == 0 for d in dists]):
         # TODO: fix this to handle when motors don't need to move
         # if dists are all 0, set all motors to min velocity
@@ -286,7 +257,8 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
         else:
             # use slowest motor that moves the most
             ret_vels.clear()
-            lowest_velocity_motors = np.where(upper_velocity_bounds == np.min(upper_velocity_bounds))[0]
+            lowest_velocity_motors = np.where(upper_velocity_bounds ==
+                                              np.min(upper_velocity_bounds))[0]
             max_dist_to_move = -1
             for k in lowest_velocity_motors:
                 if dists[k] >= max_dist_to_move:
@@ -316,7 +288,21 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
             return ret_vels
 
 
-def generate_flyer_params(population, max_velocity):
+def run_hardware_fly(motors, detector, population, max_velocity, min_velocity):
+    uid_list = []
+    flyers = generate_flyers(motors=motors, detector=detector, population=population,
+                             max_velocity=max_velocity, min_velocity=min_velocity)
+    for flyer in flyers:
+        yield from bp.fly([flyer])
+    for i in range(-len(flyers), 0):
+        uid_list.append(i)
+    # uid = (yield from bp.fly([hf]))
+    # uid_list.append(uid)
+    return uid_list
+
+
+def generate_flyers(motors, detector, population, max_velocity, min_velocity):
+    hf_flyers = []
     velocities_list = []
     distances_list = []
     for i, param in enumerate(population):
@@ -338,9 +324,8 @@ def generate_flyer_params(population, max_velocity):
                                        'high': motor_obj.velocity.high_limit}
                 velocity_limits.append(velocity_limit_dict)
                 dists.append(abs(param[motor_name] - population[i - 1][motor_name]))
-        velocities = calc_velocity(motors.keys(), dists, velocity_limits,
-                                   max_velocity=max_velocity, min_velocity=0)
-        # velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=1.3, min_velocity=0)
+        velocities = calc_velocity(motors=motors.keys(), dists=dists, velocity_limits=velocity_limits,
+                                   max_velocity=max_velocity, min_velocity=min_velocity)
         for motor_name, vel, dist in zip(motors, velocities, dists):
             velocities_dict[motor_name] = vel
             distances_dict[motor_name] = dist
@@ -359,31 +344,35 @@ def generate_flyer_params(population, max_velocity):
             times_dict[motor_name] = time_
         times_list.append(times_dict)
 
-    print('Distances:  ', distances_list)
-    print('Velocities: ', velocities_list)
-    print('Times: ', times_list)
-    return velocities_list, times_list
+    for param, vel, time_ in zip(population, velocities_list, times_list):
+        hf = HardwareFlyer(params_to_change=param,
+                           velocities=vel,
+                           time_to_travel=time_,
+                           detector=detector,
+                           motors=motors)
+        hf_flyers.append(hf)
+    return hf_flyers
 
 
-def omea_evaluation(num_of_scans):
+# def omea_evaluation(num_of_scans, uids, flyer_name, intensity_name, field_name):
+def omea_evaluation(motors, uids, flyer_name, intensity_name, field_name):
     # get the data from databroker
-    # num_of_scans is number of db records to look at
     current_fly_data = []
     pop_intensity = []
     pop_positions = []
     max_intensities = []
     max_int_pos = []
-    for i in range(-num_of_scans, 0, 1):
-        current_fly_data.append(db[i].table('tes_hardware_flyer'))
+    for uid in uids:
+        current_fly_data.append(db[uid].table(flyer_name))
     for i, t in enumerate(current_fly_data):
         pop_pos_dict = {}
         positions_dict = {}
-        max_int_index = t['tes_hardware_flyer_intensity'].idxmax()
-        for motor_name in motors.keys():
-            positions_dict[motor_name] = t[f'tes_hardware_flyer_{motor_name}_position'][max_int_index]
-            pop_pos_dict[motor_name] = t[f'tes_hardware_flyer_{motor_name}_position'][len(t)]
-        pop_intensity.append(t['tes_hardware_flyer_intensity'][len(t)])
-        max_intensities.append(t['tes_hardware_flyer_intensity'][max_int_index])
+        max_int_index = t[f'{flyer_name}_{intensity_name}'].idxmax()
+        for param_name in motors.keys():
+            positions_dict[param_name] = t[f'{flyer_name}_{param_name}_{field_name}'][max_int_index]
+            pop_pos_dict[param_name] = t[f'{flyer_name}_{param_name}_{field_name}'][len(t)]
+        pop_intensity.append(t[f'{flyer_name}_{intensity_name}'][len(t)])
+        max_intensities.append(t[f'{flyer_name}_{intensity_name}'][max_int_index])
         pop_positions.append(pop_pos_dict)
         max_int_pos.append(positions_dict)
     # compare max of each fly scan to population
@@ -396,16 +385,54 @@ def omea_evaluation(num_of_scans):
     return pop_positions, pop_intensity
 
 
-best_fitness = [0]
-hf_flyers = []
-bound_vals = [(45, 55), (70, 80)]
-motor_bounds = {}
-for i, motor in enumerate(motors.items()):
-    motor_bounds[motor[0]] = {'low': bound_vals[i][0], 'high': bound_vals[i][1]}
+def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=0,
+             popsize=5, crosspb=.8, mut=.1, mut_type='rand/1', threshold=0, max_iter=100,
+             flyer_name='tes_hardware_flyer', intensity_name='intensity', field_name='position'):
+    """
+    Optimize beamline using hardware flyers and differential evolution
 
+    Custom plan to optimize motor positions of the TES beamline using differential evolution
 
-def optimize(motors=motors, bounds=motor_bounds, max_velocity=0.2, popsize=5, crosspb=.8, mut=.1,
-             mut_type='rand/1', threshold=0, max_iter=100):
+    Parameters
+    ----------
+    fly_plan : callable
+               Fly scan plan for current type of flyer.
+               Currently the only option is `run_hardware_fly`, but another will be added for sirepo simulations
+    motors : dict
+             Keys are motor names and values are motor objects
+    detector : detector object or None
+               Detector to use, or None if no detector will be used
+    bounds : dict of dicts
+             Keys are motor names and values are dicts of low and high bounds. See format below.
+             {'motor_name': {'low': lower_bound, 'high': upper_bound}}
+    max_velocity : float, optional
+                   Absolute maximum velocity for all motors
+                   Default is 0.2
+    min_velocity : float, optional
+                   Absolute minumum velocity for all motors
+    popsize : int, optional
+              Size of population
+    crosspb : float, optional
+              Probability of crossover. Must be in range [0, 1]
+    mut : float, optional
+          Mutation factor. Must be in range [0, 1]
+    mut_type : {'rand/1', 'best/1'}, optional
+               Mutation strategy to use. 'rand/1' chooses random individuals to compare to.
+               'best/1' uses the best individual to compare to.
+               Default is 'rand/1'
+    threshold : float, optional
+                Threshold that intensity must be greater than or equal to to stop execution
+    max_iter : int, optional
+               Maximum iterations to allow
+    flyer_name : str, optional
+                 Name of flyer. DataBroker stream name
+                 Default is 'tes_hardware_flyer'
+    intensity_name : {'intensity', 'mean'}, optional
+                     Hardware optimization would use 'intensity'. Sirepo optimization would use 'mean'
+                     Default is 'intensity'
+    field_name : str, optional
+                 Default is 'position'
+    """
     # create initial population
     initial_population = []
     for i in range(popsize):
@@ -418,159 +445,42 @@ def optimize(motors=motors, bounds=motor_bounds, max_velocity=0.2, popsize=5, cr
                 indv[motor_name] = random.uniform(bounds[motor_name]['low'],
                                                   bounds[motor_name]['high'])
         initial_population.append(indv)
-    print('INITIAL POPULATION:', initial_population)
+    print('INITIAL POPULATION:')
+    for i in initial_population:
+        print(i)
 
-    # velocities_list = []
-    # distances_list = []
-    # for i, param in enumerate(initial_population):
-    #     velocities_dict = {}
-    #     distances_dict = {}
-    #     dists = []
-    #     velocity_limits = []
-    #     if i == 0:
-    #         for motor_name, motor_obj in motors.items():
-    #             velocity_limit_dict = {'motor': motor_name,
-    #                                    'low': motor_obj.velocity.low_limit,
-    #                                    'high': motor_obj.velocity.high_limit}
-    #             velocity_limits.append(velocity_limit_dict)
-    #             dists.append(0)
-    #     else:
-    #         for motor_name, motor_obj in motors.items():
-    #             velocity_limit_dict = {'motor': motor_name,
-    #                                    'low': motor_obj.velocity.low_limit,
-    #                                    'high': motor_obj.velocity.high_limit}
-    #             velocity_limits.append(velocity_limit_dict)
-    #             dists.append(abs(param[motor_name] - initial_population[i - 1][motor_name]))
-    #     velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=0.2, min_velocity=0)
-    #     # velocities = calc_velocity(motors.keys(), dists, velocity_limits, max_velocity=1.3, min_velocity=0)
-    #     for motor_name, vel, dist in zip(motors, velocities, dists):
-    #         velocities_dict[motor_name] = vel
-    #         distances_dict[motor_name] = dist
-    #     velocities_list.append(velocities_dict)
-    #     distances_list.append(distances_dict)
-    #
-    # # Validation
-    # times_list = []
-    # for dist, vel in zip(distances_list, velocities_list):
-    #     times_dict = {}
-    #     for motor_name, motor_obj in motors.items():
-    #         if vel[motor_name] == 0:
-    #             time_ = 0
-    #         else:
-    #             time_ = dist[motor_name] / vel[motor_name]
-    #         times_dict[motor_name] = time_
-    #     times_list.append(times_dict)
-    #
-    # print('Distances:  ', distances_list)
-    # print('Velocities: ', velocities_list)
-    # print('Times: ', times_list)
-
-    velocities_list, times_list = generate_flyer_params(initial_population, max_velocity)
-
-    """
-    In [2]: params_to_change                                                                                          
-    Out[2]: 
-    [{'sample_stage_x': 55, 'sample_stage_y': 60, 'sample_stage_z': 15},
-     {'sample_stage_x': 20, 'sample_stage_y': 90, 'sample_stage_z': 18},
-     {'sample_stage_x': 80, 'sample_stage_y': 36, 'sample_stage_z': 22.9}]
-    In [3]: velocities_list                                                                                           
-    Out[3]: 
-    [{'sample_stage_x': 8.0, 'sample_stage_y': 11.0, 'sample_stage_z': 4.0},
-     {'sample_stage_x': 10.9, 'sample_stage_y': 11.0, 'sample_stage_z': 0.9},
-     {'sample_stage_x': 11.0, 'sample_stage_y': 4.2, 'sample_stage_z': 0.7}]
-    In [4]: times_list                                                                                                
-    Out[4]: 
-    [{'sample_stage_x': 1.8125,
-      'sample_stage_y': 1.8181818181818181,
-      'sample_stage_z': 1.8049999999999997},
-     {'sample_stage_x': 4.541284403669724,
-      'sample_stage_y': 4.545454545454546,
-      'sample_stage_z': 4.688888888888887},
-     {'sample_stage_x': 0.9545454545454546,
-      'sample_stage_y': 0.9523809523809523,
-      'sample_stage_z': 0.9714285714285711}]
-    """
-
-    for param, vel, time_ in zip(initial_population, velocities_list, times_list):
-        hf = HardwareFlyer(params_to_change=param,
-                           velocities=vel,
-                           time_to_travel=time_,
-                           detector=xs, motors=motors)
-        yield from bp.fly([hf])
-
-        hf_flyers.append(hf)
-
-    pop_positions, pop_intensity = omea_evaluation(len(initial_population))
-
-    # # get the data from databroker
-    # # need max intensity in between and intensity at each population value
-    # current_fly_data = []
-    # pop_intensity = []
-    # pop_positions = []
-    # max_intensities = []
-    # max_int_pos = []
-    # for i in range(-popsize, 0, 1):
-    #     current_fly_data.append(db[i].table('tes_hardware_flyer'))
-    # for i, t in enumerate(current_fly_data):
-    #     pop_pos_dict = {}
-    #     positions_dict = {}
-    #     max_int_index = t['tes_hardware_flyer_intensity'].idxmax()
-    #     for motor_name in motors.keys():
-    #         positions_dict[motor_name] = t[f'tes_hardware_flyer_{motor_name}_position'][max_int_index]
-    #         pop_pos_dict[motor_name] = t[f'tes_hardware_flyer_{motor_name}_position'][len(t)]
-    #     pop_intensity.append(t['tes_hardware_flyer_intensity'][len(t)])
-    #     max_intensities.append(t['tes_hardware_flyer_intensity'][max_int_index])
-    #     pop_positions.append(pop_pos_dict)
-    #     max_int_pos.append(positions_dict)
-    # print('pop_positions', pop_positions)
-    # print('max_int_pos', max_int_pos)
-    # # compare max of each fly scan to population
-    # # replace population/intensity with higher vals, if they exist
-    # for i in range(len(max_intensities)):
-    #     if max_intensities[i] > pop_intensity[i]:
-    #         pop_intensity[i] = max_intensities[i]
-    #         for motor_name, pos in max_int_pos[i].items():
-    #             pop_positions[i][motor_name] = pos
-    # print('New positions:', pop_positions)
-    # print('New intensities:', pop_intensity)
-
+    uid_list = (yield from fly_plan(motors=motors, detector=detector, population=initial_population,
+                                    max_velocity=max_velocity, min_velocity=min_velocity))
+    # pop_positions, pop_intensity = omea_evaluation(num_of_scans=len(initial_population), uids=uid_list,
+    pop_positions, pop_intensity = omea_evaluation(motors=motors, uids=uid_list,
+                                                   flyer_name=flyer_name, intensity_name=intensity_name,
+                                                   field_name=field_name)
     # Termination conditions
     v = 0  # generation number
     consec_best_ctr = 0  # counting successive generations with no change to best value
     old_best_fit_val = 0
-    # while not v > 0:
+    best_fitness = [0]
+    # while not (v > 1):
     while not ((v > max_iter) or (consec_best_ctr >= 5 and old_best_fit_val >= threshold)):
         print(f'GENERATION {v + 1}')
+        print('CURRENT GENERATION')
+        for i in pop_positions:
+            print(i)
         best_gen_sol = []
         # mutate
-        mutated_trial_pop = mutate(pop_positions, mut_type, mut, bounds, ind_sol=pop_intensity)
+        mutated_trial_pop = mutate(population=pop_positions, strategy=mut_type, mut=mut,
+                                   bounds=bounds, ind_sol=pop_intensity)
         # crossover
-        cross_trial_pop = crossover(pop_positions, mutated_trial_pop, crosspb)
+        cross_trial_pop = crossover(population=pop_positions, mutated_indv=mutated_trial_pop,
+                                    crosspb=crosspb)
+        # select
+        select_positions = create_selection_params(motors=motors, cross_indv=cross_trial_pop)
+        uid_list = (yield from fly_plan(motors=motors, detector=detector, population=select_positions,
+                                        max_velocity=max_velocity, min_velocity=min_velocity))
 
-        # select, how can this be it's own function?
-        select_positions = [elm for elm in cross_trial_pop]
-        indv = {}
-        for motor_name, motor_obj in motors.items():
-            indv[motor_name] = motor_obj.user_readback.get()
-        select_positions.insert(0, indv)
-        velocities_list, times_list = generate_flyer_params(select_positions, max_velocity)
-        for param, vel, time_ in zip(select_positions, velocities_list, times_list):
-            hf = HardwareFlyer(params_to_change=param,
-                               velocities=vel,
-                               time_to_travel=time_,
-                               detector=xs, motors=motors)
-            yield from bp.fly([hf])
-
-            hf_flyers.append(hf)
-        positions, intensities = omea_evaluation(len(select_positions))
-        positions = positions[1:]
-        intensities = intensities[1:]
-        for i in range(len(intensities)):
-            if intensities[i] > pop_intensity[i]:
-                pop_positions[i] = positions[i]
-                pop_intensity[i] = intensities[i]
-        # pop_positions, pop_intensity = select(positions, intensities, motors,
-        #                                       cross_trial_pop, max_velocity)
+        pop_positions, pop_intensity = select(population=pop_positions, intensities=pop_intensity,
+                                              motors=motors, uids=uid_list, flyer_name=flyer_name,
+                                              intensity_name=intensity_name, field_name=field_name)
 
         # get best solution
         gen_best = np.max(pop_intensity)
@@ -593,35 +503,17 @@ def optimize(motors=motors, bounds=motor_bounds, max_velocity=0.2, popsize=5, cr
             print('Finished')
             break
         else:
-            # randomize worst individual and repeat from mutate
-            pos_to_check = []
-            change_indx = pop_intensity.index(np.min(pop_intensity))
-            changed_indv = pop_positions[change_indx]
-            indv = {}
-            for motor_name, motor_obj in motors.items():
-                indv[motor_name] = motor_obj.user_readback.get()
-            pos_to_check.append(indv)
-            indv = {}
-            for motor_name, pos in changed_indv.items():
-                indv[motor_name] = random.uniform(bounds[motor_name]['low'],
-                                                  bounds[motor_name]['high'])
-            pos_to_check.append(indv)
-
-            velocities_list, times_list = generate_flyer_params(pos_to_check, max_velocity)
-            for param, vel, time_ in zip(pos_to_check, velocities_list, times_list):
-                hf = HardwareFlyer(params_to_change=param,
-                                   velocities=vel,
-                                   time_to_travel=time_,
-                                   detector=xs, motors=motors)
-                yield from bp.fly([hf])
-
-                hf_flyers.append(hf)
-            rand_position, rand_intensity = omea_evaluation(len(pos_to_check))
-            rand_position = rand_position[1:]
-            rand_intensity = rand_intensity[1:]
-            if rand_intensity[0] > pop_intensity[change_indx]:
-                pop_positions[change_indx] = rand_position[0]
-                pop_intensity[change_indx] = rand_intensity[0]
+            positions, change_indx = create_rand_selection_params(motors=motors, intensities=pop_intensity,
+                                                                  bounds=bounds)
+            uid_list = (yield from fly_plan(motors=motors, detector=detector, population=positions,
+                                            max_velocity=max_velocity, min_velocity=min_velocity))
+            rand_pop, rand_int = select(population=[pop_positions[change_indx]],
+                                        intensities=[pop_intensity[change_indx]],
+                                        motors=motors, uids=uid_list, flyer_name=flyer_name,
+                                        intensity_name=intensity_name, field_name=field_name)
+            assert len(rand_pop) == 1 and len(rand_int) == 1
+            pop_positions[change_indx] = rand_pop[0]
+            pop_intensity[change_indx] = rand_int[0]
 
     # best solution overall should be last one
     x_best = best_gen_sol[-1]
@@ -665,7 +557,7 @@ def rand_1(pop, popsize, target_indx, mut, bounds):
     v_donor = {}
     for motor_name, pos in x_1.items():
         v_donor[motor_name] = x_1[motor_name] + mut * x_diff[motor_name]
-    v_donor = ensure_bounds(v_donor, bounds)
+    v_donor = ensure_bounds(vec=v_donor, bounds=bounds)
     return v_donor
 
 
@@ -684,7 +576,7 @@ def best_1(pop, popsize, target_indx, mut, bounds, ind_sol):
     v_donor = {}
     for motor_name, pos in x_best.items():
         v_donor[motor_name] = x_best[motor_name] + mut * x_diff[motor_name]
-    v_donor = ensure_bounds(v_donor, bounds)
+    v_donor = ensure_bounds(vec=v_donor, bounds=bounds)
     return v_donor
 
 
@@ -692,9 +584,11 @@ def mutate(population, strategy, mut, bounds, ind_sol):
     mutated_indv = []
     for i in range(len(population)):
         if strategy == 'rand/1':
-            v_donor = rand_1(population, len(population), i, mut, bounds)
+            v_donor = rand_1(pop=population, popsize=len(population), target_indx=i,
+                             mut=mut, bounds=bounds)
         elif strategy == 'best/1':
-            v_donor = best_1(population, len(population), i, mut, bounds, ind_sol)
+            v_donor = best_1(pop=population, popsize=len(population), target_indx=i,
+                             mut=mut, bounds=bounds, ind_sol=ind_sol)
         # elif strategy == 'current-to-best/1':
         #     v_donor = current_to_best_1(population, len(population), i, mut, bounds, ind_sol)
         # elif strategy == 'best/2':
@@ -720,29 +614,37 @@ def crossover(population, mutated_indv, crosspb):
     return crossover_indv
 
 
-def select(population, ind_sol, motors, crossover_indv, max_velocity):
-    positions = [elm for elm in crossover_indv]
-    positions.insert(0, population[0])
-    velocities_list, times_list = generate_flyer_params(population, max_velocity)
-    for param, vel, time_ in zip(population, velocities_list, times_list):
-        hf = HardwareFlyer(params_to_change=param,
-                           velocities=vel,
-                           time_to_travel=time_,
-                           detector=xs, motors=motors)
-        yield from bp.fly([hf])
-
-        hf_flyers.append(hf)
-
-    positions, intensities = omea_evaluation(len(population))
-    positions = positions[1:]
-    intensities = intensities[1:]
-    for i in range(len(intensities)):
-        if intensities[i] > ind_sol[i]:
-            population[i] = positions[i]
-            ind_sol[i] = intensities[i]
-    return population, ind_sol
+def create_selection_params(motors, cross_indv):
+    positions = [elm for elm in cross_indv]
+    indv = {}
+    for motor_name, motor_obj in motors.items():
+        indv[motor_name] = motor_obj.user_readback.get()
+    positions.insert(0, indv)
+    return positions
 
 
-def move_back():
-    yield from bps.mv(sample_stage.x, 50,
-                      sample_stage.y, 75)
+def create_rand_selection_params(motors, intensities, bounds):
+    positions = []
+    change_indx = intensities.index(np.min(intensities))
+    indv = {}
+    for motor_name, motor_obj in motors.items():
+        indv[motor_name] = motor_obj.user_readback.get()
+    positions.append(indv)
+    indv = {}
+    for motor_name, bound in bounds.items():
+        indv[motor_name] = random.uniform(bound['low'], bound['high'])
+    positions.append(indv)
+    return positions, change_indx
+
+
+def select(population, intensities, motors, uids, flyer_name, intensity_name, field_name):
+    new_population, new_intensities = omea_evaluation(motors=motors, uids=uids, flyer_name=flyer_name,
+                                                      intensity_name=intensity_name, field_name=field_name)
+    del new_population[0]
+    del new_intensities[0]
+    assert len(new_population) == len(population)
+    for i in range(len(new_intensities)):
+        if new_intensities[i] > intensities[i]:
+            population[i] = new_population[i]
+            intensities[i] = new_intensities[i]
+    return population, intensities
