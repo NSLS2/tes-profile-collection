@@ -653,10 +653,10 @@ def select(population, intensities, motors, uids, flyer_name, intensity_name, fi
 
 
 def move_to_optimized_positions(motors, opt_pos):
-    """
-    Move motors to best postions
-
-    Call after running optimize
-    """
+    """Move motors to best positions"""
+    mv_params = []
     for motor_obj, pos in zip(motors.values(), opt_pos.values()):
-        yield from bps.mv(motor_obj, pos)
+        # yield from bps.mv(motor_obj, pos)
+        mv_params.append(motor_obj)
+        mv_params.append(pos)
+    yield from bps.mv(*mv_params)
