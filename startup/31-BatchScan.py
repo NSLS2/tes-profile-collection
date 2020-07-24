@@ -1,9 +1,14 @@
+import os
+import pandas as pd
+import numpy as np
+
+
 def Batch_E_fly(index=None):
     # root = "/home/xf08bm/Desktop/Users/"
     # root.withdraw()
 
     # file_path = filedialog.askopenfilename()
-    file_path = "/home/xf08bm/Desktop/Users/BatchScan_Para.xls"
+    file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
     data = np.array(pd.read_excel(file_path, sheet_name="E_fly", index_col=0))
     xy_fly_stage = xy_stage
 
@@ -40,7 +45,7 @@ def Batch_xy_fly(index=None):
     # root.withdraw()
 
     # file_path = filedialog.askopenfilename()
-    file_path = "/home/xf08bm/Desktop/Users/BatchScan_Para.xls"
+    file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
     data = np.array(pd.read_excel(file_path, sheet_name="xy_fly", index_col=0))
     xy_fly_stage = xy_stage
 
