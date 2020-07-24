@@ -84,7 +84,7 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put in other meta data
     def scan_once():
-        yield from list_scan(
+        return (yield from list_scan(
             [sclr, xs],
             mono.energy,
             ept,
@@ -101,11 +101,11 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
 
                 },
             }
-        )
+        ))
 
     for scan_iter in range(num_scans):
-        yield from scan_once()
-        h = db[-1]
+        uid = (yield from scan_once())
+        h = db[uid]
         E = h.table()['mono_energy']
         I0 = h.table()['I0']
         If = h.table()['xs_channel1_rois_roi01_value_sum']

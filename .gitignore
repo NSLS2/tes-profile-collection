@@ -8,3 +8,5 @@ static/
 .vscode
 *.xdi
 xdi/
+
+.~lock.*.xls#

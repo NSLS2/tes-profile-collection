@@ -122,3 +122,17 @@ sclr.mcas.stage_sigs[sclr.cnts.channels.chan01.chname] = "dwell_time"
 
 sclr.match_names(20)
 sclr.set_mode("counting")
+
+used_channels = 20
+
+# Set first 20 channels' kinds to "normal" (meaning the readings will appear in databroker,
+# but won't be displayed in a LiveTable or LivePlot).
+for cpt in sclr.cnts.channels.component_names[:used_channels]:
+    getattr(sclr.cnts.channels, cpt).s.kind = 'normal'
+
+# Omit the rest of the channels (won't be recorded anyhow).
+for cpt in sclr.cnts.channels.component_names[used_channels:]:
+    getattr(sclr.cnts.channels, cpt).s.kind = 'omitted'
+
+# The "I0" channel should be recorded and displayed in the LiveTable and LivePlot.
+getattr(sclr.cnts.channels, 'chan02').s.kind = 'hinted'
