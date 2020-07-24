@@ -5,3 +5,8 @@ __pycache__/
 db/
 static/
 .idea/
+.vscode
+*.xdi
+xdi/
+
+.~lock.*.xls#

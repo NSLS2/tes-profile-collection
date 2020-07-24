@@ -1,18 +1,30 @@
-from ophyd.areadetector import (AreaDetector, PixiradDetectorCam, ImagePlugin,
-                                TIFFPlugin, StatsPlugin, HDF5Plugin,
-                                ProcessPlugin, ROIPlugin, TransformPlugin,
-                                OverlayPlugin)
+import h5py
+
+from ophyd.areadetector import (
+    AreaDetector,
+    PixiradDetectorCam,
+    ImagePlugin,
+    TIFFPlugin,
+    StatsPlugin,
+    HDF5Plugin,
+    ProcessPlugin,
+    ROIPlugin,
+    TransformPlugin,
+    OverlayPlugin,
+)
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.cam import AreaDetectorCam
 from ophyd.device import BlueskyInterface
 from ophyd.areadetector.trigger_mixins import SingleTrigger
-from ophyd.areadetector.filestore_mixins import (FileStoreIterativeWrite,
-                                                 FileStoreHDF5IterativeWrite,
-                                                 FileStoreTIFFSquashing,
-                                                 FileStoreTIFF,
-                                                 FileStoreHDF5, new_short_uid,
-                                                 FileStoreBase
-                                                 )
+from ophyd.areadetector.filestore_mixins import (
+    FileStoreIterativeWrite,
+    FileStoreHDF5IterativeWrite,
+    FileStoreTIFFSquashing,
+    FileStoreTIFF,
+    FileStoreHDF5,
+    new_short_uid,
+    FileStoreBase,
+)
 from databroker.assets.handlers import HandlerBase
 from ophyd import Signal
 from ophyd import Component as C
@@ -20,9 +32,13 @@ from hxntools.detectors.merlin import MerlinDetector
 from hxntools.handlers import register
 import itertools
 from pathlib import PurePath
-from hxntools.detectors.xspress3 import (XspressTrigger, Xspress3Detector,
-                                         Xspress3Channel, Xspress3FileStore,
-                                         logger)
+from hxntools.detectors.xspress3 import (
+    XspressTrigger,
+    Xspress3Detector,
+    Xspress3Channel,
+    Xspress3FileStore,
+    logger,
+)
 from databroker.assets.handlers import Xspress3HDF5Handler, HandlerBase
 from ophyd.signal import set_and_wait
 from enum import Enum
@@ -33,26 +49,26 @@ from ophyd.status import DeviceStatus
 
 register(db)
 
+
 class TESMode(Enum):
     step = 1
     fly = 2
 
 
-
 class BulkXSPRESS(HandlerBase):
-    HANDLER_NAME = 'XPS3_FLY'
+    HANDLER_NAME = "XPS3_FLY"
+
     def __init__(self, resource_fn):
-        self._handle = h5py.File(resource_fn, 'r')
+        self._handle = h5py.File(resource_fn, "r")
 
     def __call__(self):
-        return self._handle['entry/instrument/detector/data'][:]
+        return self._handle["entry/instrument/detector/data"][:]
 
 
-
-db.reg.register_handler(BulkXSPRESS.HANDLER_NAME, BulkXSPRESS,
-                        overwrite=True)
+db.reg.register_handler(BulkXSPRESS.HANDLER_NAME, BulkXSPRESS, overwrite=True)
 
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
+
 
 class Xspress3FileStoreFlyable(Xspress3FileStore):
     def __init__(self, *args, **kwargs):
@@ -66,7 +82,7 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
     @property
     def filestore_spec(self):
         if self.parent._mode is TESMode.fly:
-           return BulkXSPRESS.HANDLER_NAME
+            return BulkXSPRESS.HANDLER_NAME
         return Xspress3HDF5Handler.HANDLER_NAME
 
     def generate_datum(self, key, timestamp, datum_kwargs):
@@ -75,7 +91,9 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
         elif self.parent._mode is TESMode.fly:
             # we are doing something _very_ dirty here to skip a level of the inheritance
             # this is brittle is if the MRO changes we may not hit all the level we expect to
-            return FileStorePluginBase.generate_datum(self, key, timestamp, datum_kwargs)
+            return FileStorePluginBase.generate_datum(
+                self, key, timestamp, datum_kwargs
+            )
 
     def warmup(self):
         """
@@ -89,13 +107,17 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
         """
         print("warming up the hdf5 plugin...")
         set_and_wait(self.enable, 1)
-        sigs = OrderedDict([(self.parent.settings.array_callbacks, 1),
-                            (self.parent.settings.image_mode, 'Single'),
-                            (self.parent.settings.trigger_mode, 'Internal'),
-                            # just in case tha acquisition time is set very long...
-                            (self.parent.settings.acquire_time , 1),
-                            #(self.parent.settings.acquire_period, 1),
-                            (self.parent.settings.acquire, 1)])
+        sigs = OrderedDict(
+            [
+                (self.parent.settings.array_callbacks, 1),
+                (self.parent.settings.image_mode, "Single"),
+                (self.parent.settings.trigger_mode, "Internal"),
+                # just in case tha acquisition time is set very long...
+                (self.parent.settings.acquire_time, 1),
+                # (self.parent.settings.acquire_period, 1),
+                (self.parent.settings.acquire, 1),
+            ]
+        )
 
         original_vals = {sig: sig.get() for sig in sigs}
 
@@ -114,16 +136,16 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
         desc = super().describe()
 
         if self.parent._mode is TESMode.fly:
-            spec = {'external': 'FileStore:',
-                    'dtype' : 'array',
-                    # TODO do not hard code
-                    'shape' : (self.parent.settings.num_images.get(), 2, 4096),
-                    'source': self.prefix
+            spec = {
+                "external": "FileStore:",
+                "dtype": "array",
+                # TODO do not hard code
+                "shape": (self.parent.settings.num_images.get(), 2, 4096),
+                "source": self.prefix,
             }
-            return {'fluor': spec}
+            return {"fluor": spec}
         else:
             return super().describe()
-
 
 
 class TESXspressTrigger(XspressTrigger):
@@ -137,15 +159,16 @@ class TESXspressTrigger(XspressTrigger):
         trigger_time = ttime.time()
         if self._mode is TESMode.step:
             for sn in self.read_attrs:
-                if sn.startswith('channel') and '.' not in sn:
+                if sn.startswith("channel") and "." not in sn:
                     ch = getattr(self, sn)
                     self.dispatch(ch.name, trigger_time)
         elif self._mode is TESMode.fly:
-            self.dispatch('fluor', trigger_time)
+            self.dispatch("fluor", trigger_time)
         else:
             raise Exception(f"unexpected mode {self._mode}")
         self._abs_trigger_count += 1
         return self._status
+
 
 class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     # TODO: garth, the ioc is missing some PVs?
@@ -156,11 +179,11 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     #       (XF:05IDD-ES{Xsp:1}:ERASE_PROC_ResetFilter)
     #   det_settings.update_attr (XF:05IDD-ES{Xsp:1}:UPDATE_AttrUpdate)
     #   det_settings.update (XF:05IDD-ES{Xsp:1}:UPDATE)
-    roi_data = Cpt(PluginBase, 'ROIDATA:')
+    roi_data = Cpt(PluginBase, "ROIDATA:")
 
     # Currently only using three channels. Uncomment these to enable more
-    channel1 = C(Xspress3Channel, 'C1_', channel_num=1, read_attrs=['rois'])
-    channel2 = C(Xspress3Channel, 'C2_', channel_num=2, read_attrs=['rois'])
+    channel1 = C(Xspress3Channel, "C1_", channel_num=1, read_attrs=["rois"])
+    channel2 = C(Xspress3Channel, "C2_", channel_num=2, read_attrs=["rois"])
     # channels:
     # channel3 = C(Xspress3Channel, 'C3_', channel_num=3, read_attrs=['rois'])
     # channel4 = C(Xspress3Channel, 'C4_', channel_num=4)
@@ -169,31 +192,41 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     # channel7 = C(Xspress3Channel, 'C7_', channel_num=7)
     # channel8 = C(Xspress3Channel, 'C8_', channel_num=8)
 
-    hdf5 = Cpt(Xspress3FileStoreFlyable, 'HDF5:',
-               read_path_template='/nsls2/xf08bm/XF08BM/XSPRESS3/%Y/%m/%d/',
-               write_path_template='/tmp/',
-               root='/nsls2/xf08bm/XF08BM')
+    hdf5 = Cpt(
+        Xspress3FileStoreFlyable,
+        "HDF5:",
+        read_path_template="/nsls2/xf08bm/data/xspress3/%Y/%m/%d/",
+        write_path_template="/DATA/%Y/%m/%d/",
+        root="/nsls2/xf08bm/data/",
+    )
 
     # this is used as a latch to put the xspress3 into 'bulk' mode
     # for fly scanning.  Do this is a signal (rather than as a local variable
     # or as a method so we can modify this as part of a plan
     fly_next = Cpt(Signal, value=False)
 
+    energy_calibration = C(Signal, value=10.0, kind="config")
 
-    def __init__(self, prefix, *, configuration_attrs=None, read_attrs=None,
-                 **kwargs):
+    def __init__(self, prefix, *, configuration_attrs=None, read_attrs=None, **kwargs):
         if configuration_attrs is None:
-            configuration_attrs = ['external_trig', 'total_points',
-                                   'spectra_per_point', 'settings',
-                                   'rewindable']
+            configuration_attrs = [
+                "external_trig",
+                "total_points",
+                "spectra_per_point",
+                "settings",
+                "rewindable",
+            ]
         if read_attrs is None:
-            read_attrs = ['channel1', 'channel2', 'hdf5']
-        super().__init__(prefix, configuration_attrs=configuration_attrs,
-                         read_attrs=read_attrs, **kwargs)
+            read_attrs = ["channel1", "channel2", "hdf5"]
+        super().__init__(
+            prefix,
+            configuration_attrs=configuration_attrs,
+            read_attrs=read_attrs,
+            **kwargs,
+        )
         # this is possiblely one too many places to store this
         # in the parent class it looks at if the extrenal_trig signal is high
         self._mode = TESMode.step
-
 
     def stop(self, *, success=False):
         ret = super().stop()
@@ -216,34 +249,37 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
             self._mode = TESMode.step
         return ret
 
-xs = TESXspress3Detector('XF:08BM-ES{Xsp:1}:', name='xs')
-xs.channel1.rois.read_attrs = ['roi{:02}'.format(j) for j in [1, 2, 3, 4]]
-xs.channel2.rois.read_attrs = ['roi{:02}'.format(j) for j in [1, 2, 3, 4]]
+
+xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
+xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
 xs.hdf5.num_extra_dims.put(0)
-xs.channel2.vis_enabled.put(1)
-xs.settings.num_channels.put(3)
+xs.channel1.vis_enabled.put(1)
+xs.settings.num_channels.put(1)
 
-xs.settings.configuration_attrs = ['acquire_period',
-			'acquire_time',
-			'gain',
-			'image_mode',
-			'manufacturer',
-			'model',
-			'num_exposures',
-			'num_images',
-			'temperature',
-			'temperature_actual',
-			'trigger_mode',
-			'config_path',
-			'config_save_path',
-			'invert_f0',
-			'invert_veto',
-			'xsp_name',
-			'num_channels',
-			'num_frames_config',
-			'run_flags',
-			'trigger_signal']
-
+xs.settings.configuration_attrs = [
+    "acquire_period",
+    "acquire_time",
+    "gain",
+    "image_mode",
+    "manufacturer",
+    "model",
+    "num_exposures",
+    "num_images",
+    "temperature",
+    "temperature_actual",
+    "trigger_mode",
+    "config_path",
+    "config_save_path",
+    "invert_f0",
+    "invert_veto",
+    "xsp_name",
+    "num_channels",
+    "num_frames_config",
+    "run_flags",
+    "trigger_signal",
+]
+xs.energy_calibration.kind = "config"
 
 # This is necessary for when the ioc restarts
 # we have to trigger one image for the hdf5 plugin to work correclty
