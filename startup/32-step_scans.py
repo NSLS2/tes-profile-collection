@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 
+
 # TODO could also use check_value, but like the better error message here?
 def _validate_motor_limits(motor, start, stop, k):
     # blow up on inverted values
@@ -55,7 +56,6 @@ def _energy_to_linear(energy):
         np.pi / 2 - 2 * np.arcsin(e_back / energy) + np.deg2rad(energy_cal)
     )
 
-
 def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step_size, num_scans, xspress3=None):
 #def E_Step_Scan(dwell_time,*, scan_title = "abc",E_sections = [2700, 2800, 2900, 3200], step_size = [4, 1, 2], num_scans=2, element = 's'):
 
@@ -63,7 +63,9 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
     #for v in ["p1600=0", "p1607=4", "p1601=5", "p1602 = 2", "p1600=1"]:
         #yield from bps.mv(dtt, v)
         #yield from bps.sleep(0.1)
-
+    roi = rois(element)
+    xs.channel1.rois.roi01.bin_low.set(roi[0])
+    xs.channel1.rois.roi01.bin_high.set(roi[1])
     E_sections = np.array(E_sections)
     step_size = np.array(step_size)
 
@@ -100,6 +102,7 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
                 },
             }
         )
+
     for scan_iter in range(num_scans):
         yield from scan_once()
         h = db[-1]
