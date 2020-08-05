@@ -76,8 +76,33 @@ class HardwareFlyer(BlueskyFlyer):
 
         start_detector(self.detector)
 
-        # Call this function once before we start moving all motors to collect the first points.
-        self._watch_function()
+        # Sleep here to avoid issues like this one:
+        # Transient Scan ID: 1868     Time: 2020-08-05 13:51:02
+        # Persistent Unique Scan ID: '538d3465-a2bf-42b1-b114-11d4580999d2'
+        # !!! det reading: 541.0
+        # !!! det reading: 541.0
+        # !!! det reading: 541.0                                     | 0.0015625/0.5625753 [00:00<00:38, 68.41s/mm]
+        # !!! det reading: 541.0▍                                    | 0.0209375/0.5625753 [00:00<00:06, 12.30s/mm]
+        # !!! det reading: 40.0███▋                                    | 0.05125/0.5625753 [00:00<00:04,  7.99s/mm]
+        # !!! det reading: 40.0█████▋                                 | 0.081875/0.5625753 [00:00<00:03,  6.88s/mm]
+        # !!! det reading: 40.0███████▌                              | 0.1121875/0.5625753 [00:00<00:02,  6.37s/mm]
+        # !!! det reading: 40.0█████████▌                            | 0.1421875/0.5625753 [00:00<00:02,  6.09s/mm]
+        # !!! det reading: 40.0████████████▌                            | 0.1725/0.5625753 [00:01<00:02,  5.89s/mm]
+        # !!! det reading: 40.0██████████████▊                          | 0.2025/0.5625753 [00:01<00:02,  5.76s/mm]
+        # !!! det reading: 40.0████████████████▉                        | 0.2325/0.5625753 [00:01<00:01,  5.66s/mm]
+        # !!! det reading: 40.0█████████████████▊                    | 0.2628125/0.5625753 [00:01<00:01,  5.58s/mm]
+        # !!! det reading: 40.0███████████████████▊                  | 0.2928125/0.5625753 [00:01<00:01,  5.53s/mm]
+        # !!! det reading: 40.0███████████████████████                | 0.333125/0.5625753 [00:01<00:01,  5.46s/mm]
+        # !!! det reading: 40.0█████████████████████████▏             | 0.363125/0.5625753 [00:01<00:01,  5.42s/mm]
+        # !!! det reading: 40.0██████████████████████████▌           | 0.3934375/0.5625753 [00:02<00:00,  5.39s/mm]
+        # !!! det reading: 40.0██████████████████████████████▏         | 0.42375/0.5625753 [00:02<00:00,  5.36s/mm]
+        # !!! det reading: 40.0████████████████████████████████▎       | 0.45375/0.5625753 [00:02<00:00,  5.34s/mm]
+        # !!! det reading: 40.0██████████████████████████████████▍     | 0.48375/0.5625753 [00:02<00:00,  5.32s/mm]
+        # !!! det reading: 40.0██████████████████████████████████▋   | 0.5140625/0.5625753 [00:02<00:00,  5.30s/mm]
+        # !!! det reading: 40.0█████████████████████████████████████▍| 0.5534375/0.5625753 [00:02<00:00,  5.30s/mm]
+        # !!! det reading: 40.0████████████████████████████████████████▉| 0.5625/0.5625753 [00:03<00:00,  5.48s/mm]
+        # New stream: 'tes_hardware_flyer'
+        ttime.sleep(1.0)
 
         for motor_name, motor_obj in self.motors.items():
             motor_obj.velocity.put(self.velocities[motor_name])
@@ -88,13 +113,14 @@ class HardwareFlyer(BlueskyFlyer):
             else:
                 motor_obj.set(self.params_to_change[motor_name])
 
+        # Call this function once before we start moving all motors to collect the first points.
+        self._watch_function()
+
         self.motor_move_status.watch(self._watch_function)
 
         return NullStatus()
 
     def complete(self):
-        # all motors arrived
-        stop_detector(self.detector)
         return self.motor_move_status
 
     def describe_collect(self):
@@ -118,6 +144,9 @@ class HardwareFlyer(BlueskyFlyer):
         return return_dict
 
     def collect(self):
+        # all motors arrived
+        stop_detector(self.detector)
+
         for ind in range(len(self.watch_intensities)):
             motor_dict = {}
             for motor_name, motor_obj in self.motors.items():
@@ -151,18 +180,25 @@ class HardwareFlyer(BlueskyFlyer):
         #        'filled': {key: False for key in data}}
 
     def _watch_function(self, *args, **kwargs):
-        self.watch_positions, self.watch_intensities,\
-        self.watch_timestamps = watch_function(self.motors, self.detector)
+        rd = read_detector(self.detector)
+        self.watch_intensities.append(rd)
+        for motor_name, motor_obj in self.motors.items():
+            self.watch_positions[motor_name].append(motor_obj.user_readback.get())
+        self.watch_timestamps.append(ttime.time())
 
 
 motor_dict = {sample_stage.x.name: sample_stage.x,
               sample_stage.y.name: sample_stage.y,
-              sample_stage.z.name: sample_stage.z,}
+              # sample_stage.z.name: sample_stage.z,
+              }
 
-bound_vals = [(75, 79), (37, 41), (19, 21)]
+bound_vals = [(43, 44), (34, 35)]
 motor_bounds = {}
 for i, motor in enumerate(motor_dict.items()):
     motor_bounds[motor[0]] = {'low': bound_vals[i][0], 'high': bound_vals[i][1]}
+
+# Note: run it with
+# RE(optimize(run_hardware_fly, motors=motor_dict, detector=xs, bounds=motor_bounds))
 
 # TODO: change motor list to be dict of dicts;
 #  {motor_name: {position: val}}, {motor_name: {bounds: [low, high]}}
@@ -424,6 +460,9 @@ def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=
     field_name : str, optional
                  Default is 'position'
     """
+    # This disables live plots, not needed for this plan.
+    bec.disable_plots()
+
     global optimized_positions
     # check if bounds passed in are within the actual bounds of the motors
     check_opt_bounds(motors, bounds)
@@ -508,6 +547,10 @@ def optimize(fly_plan, motors, detector, bounds, max_velocity=0.2, min_velocity=
 
     print('Moving to optimal positions')
     yield from move_to_optimized_positions(motors, optimized_positions)
+
+    # Enable live plots here to be available for other plans.
+    bec.enable_plots()
+
 
     plot_index = np.arange(len(best_fitness))
     plt.figure()
@@ -660,3 +703,51 @@ def move_to_optimized_positions(motors, opt_pos):
         mv_params.append(motor_obj)
         mv_params.append(pos)
     yield from bps.mv(*mv_params)
+
+
+# Logbook: 2020-08-05
+
+# Transient Scan ID: 2106     Time: 2020-08-05 14:33:11
+# Persistent Unique Scan ID: '7744d3c6-7640-42e7-ae43-a404069cc181'
+# !!! det reading: 110.0
+# !!! det reading: 110.0
+# !!! det reading: 110.0                                                                                                      | 0.0025/0.3955 [00:00<00:11, 28.91s/mm]
+# !!! det reading: 66.0███████▏                                                                                            | 0.0284375/0.3955 [00:00<00:02,  7.97s/mm]
+# !!! det reading: 71.0██████████████▏                                                                                     | 0.0559375/0.3955 [00:00<00:02,  6.81s/mm]
+# !!! det reading: 37.0█████████████████████                                                                               | 0.0834375/0.3955 [00:00<00:02,  6.42s/mm]
+# !!! det reading: 149.0███████████████████████████                                                                        | 0.1109375/0.3955 [00:00<00:01,  6.21s/mm]
+# !!! det reading: 343.0██████████████████████████████████                                                                 | 0.1384375/0.3955 [00:00<00:01,  6.09s/mm]
+# !!! det reading: 230.0█████████████████████████████████████████▉                                                           | 0.16625/0.3955 [00:00<00:01,  6.00s/mm]
+# !!! det reading: 196.0████████████████████████████████████████████████▉                                                    | 0.19375/0.3955 [00:01<00:01,  5.94s/mm]
+# !!! det reading: 89.0█████████████████████████████████████████████████████████                                             | 0.22125/0.3955 [00:01<00:01,  5.90s/mm]
+# !!! det reading: 79.0██████████████████████████████████████████████████████████████████▋                                   | 0.25875/0.3955 [00:01<00:00,  5.85s/mm]
+# !!! det reading: 201.0████████████████████████████████████████████████████████████████████████▊                            | 0.28625/0.3955 [00:01<00:00,  5.83s/mm]
+# !!! det reading: 60.0████████████████████████████████████████████████████████████████████████████████▉                     | 0.31375/0.3955 [00:01<00:00,  5.81s/mm]
+# !!! det reading: 124.0███████████████████████████████████████████████████████████████████████████████████████              | 0.34125/0.3955 [00:01<00:00,  5.79s/mm]
+# !!! det reading: 156.0██████████████████████████████████████████████████████████████████████████████████████████████       | 0.36875/0.3955 [00:02<00:00,  5.77s/mm]
+# !!! det reading: 205.0████████████████████████████████████████████████████████████████████████████████████████████████████▌| 0.39375/0.3955 [00:02<00:00,  5.80s/mm]
+# !!! det reading: 205.025mm [00:02,  6.33s/mm]
+# New stream: 'tes_hardware_flyer'
+
+# In [7]: hdr = db['7744d3c6-7640-42e7-ae43-a404069cc181']
+#
+# In [8]: hdr.table(stream_name='tes_hardware_flyer', fields=['tes_hardware_flyer_sample_stage_x_position', 'tes_hardware_flyer_sample_stage_y_position', 'tes_hardwar
+#    ...: e_flyer_intensity'])
+# Out[8]:
+#                                  time  tes_hardware_flyer_intensity  tes_hardware_flyer_sample_stage_x_position  tes_hardware_flyer_sample_stage_y_position
+# seq_num
+# 1       2020-08-05 14:33:14.213995934                         205.0                                   54.365938                                   40.369062
+#
+# In [9]:
+
+# ^^^ solved by rewriting the watch function (no globals)
+
+# TODO:
+# 1) have a live plot for the fitness (convergence plot)
+# 2) improve the algorithm to optimize the travel path (should not go back to the same point)
+# 3) Usability:
+#    - convenient I/O to the saved data (pandas dataframes, sorting, ...)
+#    - clean up prints and better output log
+#    - add metadata about the samples
+#    - plot trajectory
+
