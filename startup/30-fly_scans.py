@@ -280,9 +280,8 @@ def E_fly(
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
     roi = rois(element)
-    xs.channel1.rois.roi01.bin_low.set(roi[0])
-    xs.channel1.rois.roi01.bin_high.set(roi[1])
-
+    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
+                      xs.channel1.rois.roi01.bin_high, roi[1])
 
     def _linear_to_energy(linear):
         linear = np.asarray(linear)

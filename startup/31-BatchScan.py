@@ -49,6 +49,9 @@ def Batch_xy_fly(index=None):
     data = np.array(pd.read_excel(file_path, sheet_name="xy_fly", index_col=0))
     xy_fly_stage = xy_stage
 
+    e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
+    energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
+
     if index is None:
         index = range(data.shape[0])
     # @bpp.reset_positions_decorator([mono.linear])
@@ -69,7 +72,8 @@ def Batch_xy_fly(index=None):
         detector = data[ii, 13]
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
         yield from bps.sleep(2)
-        yield from bps.mv(mono.energy, E_e)
+        l_start = _energy_to_linear([E_e])
+        yield from bps.mv(mono.linear, l_start)
         yield from xy_fly(
             scan_title=scan_title,
             beamline_operator=operator,
