@@ -51,7 +51,7 @@ class HardwareFlyer(BlueskyFlyer):
         self.detector = detector
         self.motors = motors
 
-        self.watch_positions = {name: [] for name in self.motors}
+        self.watch_positions = {name: {'position': []} for name in self.motors}
         self.watch_intensities = []
         self.watch_timestamps = []
 
@@ -99,14 +99,16 @@ class HardwareFlyer(BlueskyFlyer):
         # New stream: 'tes_hardware_flyer'
         ttime.sleep(1.0)
 
-        for motor_name, motor_obj in self.motors.items():
-            motor_obj.velocity.put(self.velocities[motor_name])
+        for motor_name, field in self.motors.items():
+            for field_name, motor_obj in field.items():
+                motor_obj.velocity.put(self.velocities[motor_name])
 
-        for motor_name, motor_obj in self.motors.items():
-            if motor_name == slowest_motor:
-                self.motor_move_status = motor_obj.set(self.params_to_change[motor_name])
-            else:
-                motor_obj.set(self.params_to_change[motor_name])
+        for motor_name, field in self.motors.items():
+            for field_name, motor_obj in field.items():
+                if motor_name == slowest_motor:
+                    self.motor_move_status = motor_obj.set(self.params_to_change[motor_name][field_name])
+                else:
+                    motor_obj.set(self.params_to_change[motor_name][field_name])
 
         # Call this function once before we start moving all motors to collect the first points.
         self._watch_function()
@@ -144,11 +146,12 @@ class HardwareFlyer(BlueskyFlyer):
 
         for ind in range(len(self.watch_intensities)):
             motor_dict = {}
-            for motor_name, motor_obj in self.motors.items():
-                motor_dict.update(
-                    {f'{self.name}_{motor_name}_velocity': self.velocities[motor_name],
-                     f'{self.name}_{motor_name}_position': self.watch_positions[motor_name][ind]}
-                )
+            for motor_name, field in self.motors.items():
+                for field_name, motor_obj in field.items():
+                    motor_dict.update(
+                        {f'{self.name}_{motor_name}_velocity': self.velocities[motor_name],
+                         f'{self.name}_{motor_name}_position': self.watch_positions[motor_name][field_name][ind]}
+                    )
 
             data = {f'{self.name}_intensity': self.watch_intensities[ind]}
             data.update(motor_dict)
@@ -176,7 +179,8 @@ class HardwareFlyer(BlueskyFlyer):
 
     def _watch_function(self, *args, **kwargs):
         watch_pos, watch_int, watch_time = watch_function(self.motors, self.detector)
-        for motor_name in self.motors.keys():
-            self.watch_positions[motor_name].extend(watch_pos[motor_name])
+        for motor_name, field in self.motors.items():
+            for field_name, val in field.items():
+                self.watch_positions[motor_name][field_name].extend(watch_pos[motor_name][field_name])
         self.watch_intensities.extend(watch_int)
         self.watch_timestamps.extend(watch_time)

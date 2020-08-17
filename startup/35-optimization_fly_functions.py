@@ -15,8 +15,11 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
     motors : dict
              In the format {motor_name: motor_object}
              Ex. {sample_stage.x.name: sample_stage.x}
-    dists :
-    velocity_limits :
+    dists : list
+            List of distances each motor has to move
+    velocity_limits : list of dicts
+                      list of dicts for each motor. Dictionary has keys of motor, low, high;
+                      values are motor_name, velocity low limit, velocity high limit
     max_velocity : float
                    Set this to limit the absolute highest velocity of any motor
     min_velocity : float
@@ -116,40 +119,43 @@ def calc_velocity(motors, dists, velocity_limits, max_velocity=None, min_velocit
 
 def run_hardware_fly(motors, detector, population, max_velocity, min_velocity):
     uid_list = []
-    flyers = generate_flyers(motors=motors, detector=detector, population=population,
+    flyers = generate_hardware_flyers(motors=motors, detector=detector, population=population,
                              max_velocity=max_velocity, min_velocity=min_velocity)
     for flyer in flyers:
         yield from bp.fly([flyer])
     for i in range(-len(flyers), 0):
         uid_list.append(i)
+    # TODO: update later for use with newer bluesky
     # uid = (yield from bp.fly([hf]))
     # uid_list.append(uid)
     return uid_list
 
 
-def generate_flyers(motors, detector, population, max_velocity, min_velocity):
+def generate_hardware_flyers(motors, detector, population, max_velocity, min_velocity):
     hf_flyers = []
     velocities_list = []
     distances_list = []
-    for i, param in enumerate(population):
+    for i, pparam in enumerate(population):
         velocities_dict = {}
         distances_dict = {}
         dists = []
         velocity_limits = []
         if i == 0:
-            for motor_name, motor_obj in motors.items():
-                velocity_limit_dict = {'motor': motor_name,
-                                       'low': motor_obj.velocity.low_limit,
-                                       'high': motor_obj.velocity.high_limit}
-                velocity_limits.append(velocity_limit_dict)
-                dists.append(0)
+            for elem, param in motors.items():
+                for param_name, elem_obj in param.items():
+                    velocity_limit_dict = {'motor': elem,
+                                           'low': elem_obj.velocity.low_limit,
+                                           'high': elem_obj.velocity.high_limit}
+                    velocity_limits.append(velocity_limit_dict)
+                    dists.append(0)
         else:
-            for motor_name, motor_obj in motors.items():
-                velocity_limit_dict = {'motor': motor_name,
-                                       'low': motor_obj.velocity.low_limit,
-                                       'high': motor_obj.velocity.high_limit}
-                velocity_limits.append(velocity_limit_dict)
-                dists.append(abs(param[motor_name] - population[i - 1][motor_name]))
+            for elem, param in motors.items():
+                for param_name, elem_obj in param.items():
+                    velocity_limit_dict = {'motor': elem,
+                                           'low': elem_obj.velocity.low_limit,
+                                           'high': elem_obj.velocity.high_limit}
+                    velocity_limits.append(velocity_limit_dict)
+                    dists.append(abs(pparam[elem][param_name] - population[i - 1][elem][param_name]))
         velocities = calc_velocity(motors=motors.keys(), dists=dists, velocity_limits=velocity_limits,
                                    max_velocity=max_velocity, min_velocity=min_velocity)
         for motor_name, vel, dist in zip(motors, velocities, dists):
@@ -162,7 +168,7 @@ def generate_flyers(motors, detector, population, max_velocity, min_velocity):
     times_list = []
     for dist, vel in zip(distances_list, velocities_list):
         times_dict = {}
-        for motor_name, motor_obj in motors.items():
+        for motor_name in motors.keys():
             if vel[motor_name] == 0:
                 time_ = 0
             else:
@@ -181,23 +187,28 @@ def generate_flyers(motors, detector, population, max_velocity, min_velocity):
 
 
 def check_opt_bounds(motors, bounds):
-    for motor_name, bound in bounds.items():
-        if bound['low'] > bound['high']:
-            raise ValueError(f"Invalid bounds for {motor_name}. Current bounds are set to "
-                             f"{bound['low'],bound['high']}, but lower bound is greater "
-                             f"than upper bound")
-        if bound['low'] < motors[motor_name].low_limit or bound['high']\
-                > motors[motor_name].high_limit:
-            raise ValueError(f"Invalid bounds for {motor_name}. Current bounds are set to "
-                             f"{bound['low'],bound['high']}, but {motor_name} has bounds of "
-                             f"{motors[motor_name].limits}")
+    for elem, param in bounds.items():
+        for param_name, bound in param.items():
+            if bound[0] > bound[1]:
+                raise ValueError(f"Invalid bounds for {elem}. Current bounds are set to "
+                                 f"{bound[0], bound[1]}, but lower bound is greater than "
+                                 f"upper bound")
+            if bound[0] < motors[elem][param_name].low_limit or bound[1] >\
+                    motors[elem][param_name].high_limit:
+                raise ValueError(f"Invalid bounds for {elem}. Current bounds are set to "
+                                 f"{bound[0], bound[1]}, but {elem} has bounds of "
+                                 f"{motors[elem][param_name].limits}")
 
 
 def move_to_optimized_positions(motors, opt_pos):
     """Move motors to best positions"""
     mv_params = []
-    for motor_obj, pos in zip(motors.values(), opt_pos.values()):
-        # yield from bps.mv(motor_obj, pos)
-        mv_params.append(motor_obj)
-        mv_params.append(pos)
+    for elem, param in motors.items():
+        for param_name, elem_obj in param.items():
+            mv_params.append(elem_obj)
+            mv_params.append(opt_pos[elem][param_name])
+    # for motor_obj, pos in zip(motors.values(), opt_pos.values()):
+    #     # yield from bps.mv(motor_obj, pos)
+    #     mv_params.append(motor_obj)
+    #     mv_params.append(pos)
     yield from bps.mv(*mv_params)
