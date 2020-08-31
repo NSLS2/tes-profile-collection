@@ -96,10 +96,10 @@ def xy_fly(
     assert xstep_size > 0, f"xstep_size ({xstep_size}) must be more than 0"
     assert ystep_size > 0, f"ystep_size ({ystep_size}) must be more than 0"
     ret = yield from bps.read(xy_fly_stage.x.mres)  # (in mm)
-    xmres = ret[xy_fly_stage.x.mres.name]["value"] if ret is not None else 0.0003125
-
+    #xmres = ret[xy_fly_stage.x.mres.name]["value"] if ret is not None else 0.0003125
+    xmres = ret[xy_fly_stage.x.mres.name]["value"] if ret is not None else 0.0002
     ret = yield from bps.read(xy_fly_stage.y.mres)  # (in mm)
-    ymres = ret[xy_fly_stage.y.mres.name]["value"] if ret is not None else 0.0003125
+    ymres = ret[xy_fly_stage.y.mres.name]["value"] if ret is not None else 0.0002
 
     prescale = int(np.floor((xstep_size / (5 * xmres))))
     a_xstep_size = prescale * (5 * xmres)
