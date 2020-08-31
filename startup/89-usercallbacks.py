@@ -1,5 +1,8 @@
 import tifffile
+
 from bluesky.callbacks import CallbackBase
+from bluesky.callbacks.mpl_plotting import QtAwareCallback
+
 import numpy as np
 
 
@@ -37,8 +40,9 @@ from itertools import count as _it_count
 import matplotlib.pyplot as plt
 
 
-class EScanPlot(CallbackBase):
-    def __init__(self):
+class EScanPlot(QtAwareCallback):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.known_desc = {}
         self.index = _it_count()
         self.fig = self.ax = None
