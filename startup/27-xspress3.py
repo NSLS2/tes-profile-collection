@@ -29,7 +29,6 @@ from databroker.assets.handlers import HandlerBase
 from ophyd import Signal
 from ophyd import Component as C
 from hxntools.detectors.merlin import MerlinDetector
-from hxntools.handlers import register
 import itertools
 from pathlib import PurePath
 from hxntools.detectors.xspress3 import (
@@ -46,8 +45,6 @@ from ophyd.signal import set_and_wait
 from collections import OrderedDict
 from ophyd import Staged
 from ophyd.status import DeviceStatus
-
-register(db)
 
 
 class TESMode(Enum):
