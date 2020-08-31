@@ -9,4 +9,6 @@ static/
 *.xdi
 xdi/
 
+*.ods
+*.xls
 .~lock.*.xls#
