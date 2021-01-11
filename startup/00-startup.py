@@ -4,7 +4,6 @@ from IPython import get_ipython
 configure_base(get_ipython().user_ns, "tes")
 
 import logging
-logging.getLogger("ophyd").setLevel("WARNING")
 
 from pathlib import Path
 
