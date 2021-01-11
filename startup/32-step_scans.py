@@ -78,12 +78,12 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
         ept = ept[0:-1]
         ept = np.append(ept, np.linspace(E_sections[ii], E_sections[ii+1], np.int((E_sections[ii+1] - E_sections[ii])/step_size[ii])+1))
 
+    sclr.set_mode("counting")
     yield from bps.mv(xs.external_trig, False)
     yield from bps.mv(sclr.cnts.preset_time, dwell_time,
                       xs.settings.acquire_time, dwell_time)
-    #yield from bps.sleep(0.2)
-    sclr.set_mode("counting")
 
+    #yield from bps.mv(sclr.set_mode,"counting")
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.baseline_decorator([mono, xy_stage])
     # TODO put in other meta data
