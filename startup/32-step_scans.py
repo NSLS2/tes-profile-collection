@@ -65,8 +65,11 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
         #yield from bps.mv(dtt, v)
         #yield from bps.sleep(0.1)
     roi = rois(element)
-    xs.channel1.rois.roi01.bin_low.set(roi[0])
-    xs.channel1.rois.roi01.bin_high.set(roi[1])
+    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
+                  xs.channel1.rois.roi01.bin_high, roi[1])
+    yield from bps.sleep(0.1)
+#    xs.channel1.rois.roi01.bin_low.set(roi[0])
+#    xs.channel1.rois.roi01.bin_high.set(roi[1])
     E_sections = np.array(E_sections)
     step_size = np.array(step_size)
 
