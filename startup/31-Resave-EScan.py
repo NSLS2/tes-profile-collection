@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 
-def Resave(element, file_name):
-    h = db[-1]
+def Resave(element, file_name, scanID):
+    h = db[scanID]
     roi = rois(element)
 
     if not roi:
