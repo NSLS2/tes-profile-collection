@@ -163,10 +163,10 @@ def xy_fly(
         yield from bps.mv(xspress3.settings.num_images, num_xpixels)
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
-    @bpp.subs_decorator({"all": [roi_livegrid]})
-    @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
+    #@bpp.subs_decorator({"all": [roi_livegrid]})
+    #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([mono, xy_fly_stage])
+    #@bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
