@@ -10,7 +10,7 @@ import bluesky.preprocessors as bpp
 from event_model import RunRouter
 import numpy as np
 import pandas as pd
-
+#from datetime import datetime
 
 
 # TODO could also use check_value, but like the better error message here?
@@ -56,6 +56,7 @@ def _energy_to_linear(energy):
         np.pi / 2 - 2 * np.arcsin(e_back / energy) + np.deg2rad(energy_cal)
     )
 
+@bpp.baseline_decorator([mono, xy_stage])
 def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step_size, num_scans, xspress3=None):
 #def E_Step_Scan(dwell_time,*, scan_title = "abc",E_sections = [2700, 2800, 2900, 3200], step_size = [4, 1, 2], num_scans=2, element = 's'):
 
