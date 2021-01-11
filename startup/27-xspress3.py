@@ -31,7 +31,7 @@ from ophyd import Component as C
 from hxntools.detectors.merlin import MerlinDetector
 import itertools
 from pathlib import PurePath
-from hxntools.detectors.xspress3 import (
+from nslsii.detectors.xspress3 import (
     XspressTrigger,
     Xspress3Detector,
     Xspress3Channel,
