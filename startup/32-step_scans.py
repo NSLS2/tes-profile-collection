@@ -110,12 +110,16 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
         ))
 
     for scan_iter in range(num_scans):
-        uid = (yield from scan_once())
-        h = db[uid]
+        yield from scan_once()
+        h = db[-1]
         E = h.table()['mono_energy']
         I0 = h.table()['I0']
         If = h.table()['xs_channel1_rois_roi01_value_sum']
         df = pd.DataFrame({'#Energy': E, 'I0': I0, 'If': If})
+        #now = datetime.now()
+        #filefolder = '/home/xf08bm/Users/'+f'{operator}/{now.year}-{now.month}-{now.day}'+'/E_Step_Scan';
+        #filename = f'{operator}-{scan_title}-{scan_iter}-{uid}-{now.strftime("%H%M%S")}.csv'
+
         df.to_csv('/home/xf08bm/Users/TEMP/Step_Scan/'+f'{operator}-{scan_title}-{scan_iter}.csv')
         #df.to_csv('/home/xf08bm/Users/TEMP/Step_Scan/' + f'{operator}-{scan_title}-{scan_iter}-{datetime.now().strftime("%H:%M:%S")}.csv')
     print('Please go /home/xf08bm/Desktop/Users/TEMP/ to copy your data ASAP!')
