@@ -57,6 +57,8 @@ from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 class Xspress3FileStoreFlyable(Xspress3FileStore):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # This soft signal must be set before staging.
+        self.parent.total_points.set(1).wait()
 
     @property
     def filestore_res(self):
