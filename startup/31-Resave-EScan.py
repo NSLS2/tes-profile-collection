@@ -17,9 +17,11 @@ def Resave(element, file_name, scanID):
         E = h.table('energy_bins')['E_centers'][1]
 
         I0 = h.table()['I0']
+        Dwell_time = h.table()['dwell_time']
 
         for ii in range(If.shape[0]):
             df = pd.DataFrame({'#Energy': E,
+                               'Dwell_time': Dwell_time[ii + 1],
                                'I0': I0[ii + 1],
                                'If': If[ii, :, 0]})
             df.to_csv('/home/xf08bm/Users/TEMP/' + f'{file_name}-{ii}.csv')
