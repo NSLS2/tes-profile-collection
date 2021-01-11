@@ -84,8 +84,10 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
                       xs.settings.acquire_time, dwell_time)
 
     #yield from bps.mv(sclr.set_mode,"counting")
+
+    #yield from bps.sleep(0.1)
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
-    @bpp.baseline_decorator([mono, xy_stage])
+    #@bpp.baseline_decorator([mono, xy_stage])
     # TODO put in other meta data
     def scan_once():
         return (yield from list_scan(
