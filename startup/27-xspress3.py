@@ -65,13 +65,12 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
 
     @property
     def filestore_spec(self):
-        if self.parent._mode is TESMode.fly:
-            # Both "XPS3_FLY" and "XSP3_FLY" point to the same 
-            # reader in area-detector handers. "XPS" seems like it
-            # originated as a typo, but we'll leave it for consistency
-            # of documents through time until / unless we do a migration
-            # to "fix" the old documents in the database.
-           return 'XPS3_FLY'
+        # Both "XPS3_FLY" and "XSP3_FLY" point to the same 
+        # reader in area-detector handers. "XPS" seems like it
+        # originated as a typo, but we'll leave it for consistency
+        # of documents through time until / unless we do a migration
+        # to "fix" the old documents in the database.
+       return 'XPS3_FLY'
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         if self.parent._mode is TESMode.step:
