@@ -190,9 +190,16 @@ def xy_fly(
             },
         }
     )
+
+
     def fly_body():
 
         yield from bps.mv(xy_fly_stage.x, xstart, xy_fly_stage.y, ystart)
+
+        #  This part is not necessary to be here. revised by YDu
+        for v in ["p1600=0", "p1600=1"]:
+            yield from bps.mv(dtt, v)
+            yield from bps.sleep(0.1)
 
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
         def fly_row():
@@ -203,36 +210,37 @@ def xy_fly(
                 y_centers, np.ones(num_xpixels) * target_y
             )  # set the fly speed
 
-            ret = yield from bps.read(xy_fly_stage.z.user_readback)  # (in mm)
-            zpos = (
-                ret[xy_fly_stage.z.user_readback.name]["value"]
-                if ret is not None
-                else 0
-            )
-            yield from bps.mov(z_centers, np.ones(num_xpixels) * zpos)
+   #         ret = yield from bps.read(xy_fly_stage.z.user_readback)  # (in mm)
+            #  revised by YDu, no such value before
+            #yield from bps.sleep(0)
+   #         zpos = (
+    #            ret[xy_fly_stage.z.user_readback.name]["value"]
+     #           if ret is not None
+      #          else 0
+       #     )
+        #    yield from bps.mov(z_centers, np.ones(num_xpixels) * zpos)
 
             yield from bps.mv(xy_fly_stage.x.velocity, flyspeed)
 
             yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
 
-            for v in ["p1600=0", "p1600=1"]:
-                yield from bps.mv(dtt, v)
-                yield from bps.sleep(0.1)
+
 
             # arm the struck
             yield from bps.trigger(sclr, group=f"fly_row_{y}")
             # maybe start the xspress3
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_row_{y}")
-            yield from bps.sleep(0.1)
-            # fly the motor
+            #  revised by YDu, use to be 0.1
+            yield from bps.sleep(1.5)            # fly the motor
             yield from bps.abs_set(
                 xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             )
             yield from bps.wait(group=f"fly_row_{y}")
 
-            yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
+            # yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
             yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
+            #  revised by YDu, use to be 0.1
             yield from bps.sleep(0.1)
             # read and save the struck
             yield from bps.create(name="primary")
@@ -247,7 +255,12 @@ def xy_fly(
             # and maybe the xspress3
             if xspress3 is not None:
                 yield from bps.read(xspress3)
+            yield from bps.sleep(0.2)
             yield from bps.save()
+            yield from bps.sleep(0.2)
+       #     if 5 - abs(xstop - xstart)/5 > 0:
+        #        #print(5 - abs(xstop - xstart)/5)
+         #       time.sleep(5.3 - abs(xstop - xstart)/5)
 
         for y in range(num_ypixels):
             if xspress3 is not None:
@@ -274,7 +287,7 @@ E_centers.tolerance = 1e-15
 
 
 def E_fly(
-        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=None
+        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=xs
 ):
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
@@ -282,9 +295,10 @@ def E_fly(
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
-    roi = rois(element)
-    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
-                      xs.channel1.rois.roi01.bin_high, roi[1])
+ #   roi = rois(element)
+ #   yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
+ #                     xs.channel1.rois.roi01.bin_high, roi[1])
+ #   yield from bps.sleep(0.1)
 
     def _linear_to_energy(linear):
         linear = np.asarray(linear)
@@ -380,6 +394,7 @@ def E_fly(
             # go to start of row
 
             yield from bps.checkpoint()
+            yield from bps.mv(mono.linear.velocity, 1)
             yield from bps.mv(mono.linear, l_start)
 
             # set the fly speed
@@ -404,7 +419,7 @@ def E_fly(
 
             yield from bps.trigger_and_read([mono], name="row_ends")
 
-            yield from bps.mv(mono.linear.velocity, 0.5)
+            yield from bps.mv(mono.linear.velocity, flyspeed)
             # hard coded to let the sclr count its fingers and toes
             yield from bps.sleep(0.1)
             # read and save the struck
@@ -414,6 +429,7 @@ def E_fly(
                 yield from bps.read(xspress3)
 
             yield from bps.save()
+
 
         for scan_iter in range(num_scans):
             if xspress3 is not None:
