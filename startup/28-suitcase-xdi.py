@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from itertools import zip_longest
 from datetime import datetime
 from pathlib import Path
@@ -415,6 +416,8 @@ class Serializer(event_model.DocumentRouter):
                     # (f"found data for data key {data_key}")
                     # pprint(event_data)
                     if isinstance(event_data, np.ndarray):
+                        self._column_data[data_key] = event_data
+                    elif isinstance(event_data, Sequence):
                         self._column_data[data_key] = event_data
                     else:
                         self._column_data[data_key] = (event_data,)
