@@ -116,20 +116,17 @@ def Batch_E_step(index=None):
         scan_title = data[ii, 3]
         operator = data[ii, 4]
         element = data[ii, 5]
-        dwell_time = data[ii, 6]
-        E_selections = data[ii, 7]
-        Step_size = data[ii, 8]
-        num_scans = data[ii, 9]
-        flyspeed = data[ii, 11]
+        dwell_time = data[ii, 10]
+        E_selections = list(map(float,data[ii, 8].strip('][').split(',')))
+        Step_size = list(map(float,data[ii, 9].strip('][').split(',')))
+        num_scans = data[ii, 6]
+
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
-        yield from E_step(
-            scan_title,
-            operator=operator,
-            element=element,
-            start=start,
-            stop=stop,
-            step_size=step_size,
-            num_scans=num_scans,
-            flyspeed=flyspeed,
-            xspress3=xs,
-        )
+        yield from E_Step_Scan(scan_title=scan_title,
+                               operator=operator,
+                               element=element,
+                               dwell_time=dwell_time,
+                               E_sections=E_selections,
+                               step_size=Step_size,
+                               num_scans=num_scans,
+                               xspress3=xs)
