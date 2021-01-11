@@ -1,4 +1,4 @@
-import datetime
+from datetime import date
 from functools import partial
 import os.path
 
@@ -40,9 +40,11 @@ def e_fly_export(db_header):
         "e_fly_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])
     }
 
+    today = date.today().isoformat()
+
     with Serializer(
         directory=os.path.expanduser(
-            f"~/Users/Data/{start['operator']}/{datetime.date.today().isoformat()}/e_fly/"
+            f"~/Users/Data/{start['operator']}/{today}/e_fly/"
         ),
         file_prefix="{scan_title}-{scan_id}-{operator}-",
         xdi_file_template=suitcase_config,
@@ -57,6 +59,7 @@ def e_fly_export(db_header):
 def e_fly_serializer_factory(name, start_doc):
     element = start_doc["user_input"]["element"]
     roi = element_to_roi[element.lower()]
+    today = date.today().isoformat()
 
     suitcase_transforms = {
         "e_fly_roi1": partial(e_fly_roi1, roi_lo_ndx=roi[0], roi_hi_ndx=roi[1])
@@ -64,7 +67,7 @@ def e_fly_serializer_factory(name, start_doc):
 
     serializer = Serializer(
         directory=os.path.expanduser(
-            "~/Users/Data/{}".format(datetime.date.today().isoformat())
+            "~/Users/Data/{}".format(today)
         ),
         file_prefix="{scan_title}-{scan_id}-",
         xdi_file_template=suitcase_config,
@@ -76,7 +79,7 @@ def e_fly_serializer_factory(name, start_doc):
 def e_step_serializer(element, beamline_operator, suitcase_config):
     """
     Return an XDI serializer with output directory
-        "~/Users/Data/{beamline_operator}/{datetime.date.today().isoformat()}/e_step/"
+        "~/Users/Data/{beamline_operator}/{date.today().isoformat()}/e_step/"
     and file prefix
         "{scan_title}-{scan_id}-"
 
@@ -96,7 +99,7 @@ def e_step_serializer(element, beamline_operator, suitcase_config):
     }
     serializer = Serializer(
         directory=os.path.expanduser(
-            f"~/Users/Data/{beamline_operator}/{datetime.date.today().isoformat()}/e_step/"
+            f"~/Users/Data/{beamline_operator}/{date.today().isoformat()}/e_step/"
         ),
         file_prefix="{scan_title}-{scan_id}-",
         xdi_file_template=suitcase_config,
