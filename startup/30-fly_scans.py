@@ -114,21 +114,22 @@ def xy_fly(
     )
 
     # SRX original roi_key = getattr(xs.channel1.rois, roi_name).value.name
-    roi_livegrid_key = xs.channel1.rois.roi01.value.name
-    fig = plt.figure("xs")
-    fig.clf()
-    roi_livegrid = LiveGrid(
-        (num_ypixels + 1, num_xpixels + 1),
-        roi_livegrid_key,
-        clim=None,
-        cmap="inferno",
-        xlabel="x (mm)",
-        ylabel="y (mm)",
-        extent=[xstart, xstop, ystart, ystop],
-        x_positive="right",
-        y_positive="down",
-        ax=fig.gca(),
-    )
+
+    #    roi_livegrid_key = xs.channel1.rois.roi01.value.name
+    #fig = plt.figure("xs")
+    #fig.clf()
+    #roi_livegrid = LiveGrid(
+    #    (num_ypixels + 1, num_xpixels + 1),
+    #    roi_livegrid_key,
+    #    clim=None,
+    #    cmap="inferno",
+    #    xlabel="x (mm)",
+    #    ylabel="y (mm)",
+    #    extent=[xstart, xstop, ystart, ystop],
+    #    x_positive="right",
+    #    y_positive="down",
+    #    ax=fig.gca(),
+    #)
 
     flyspeed = a_xstep_size / dwell_time  # this is in mm/s
 
