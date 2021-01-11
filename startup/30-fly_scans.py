@@ -145,9 +145,11 @@ def xy_fly(
         ) from e
 
     # set up delta-tau trigger to fast motor
-    for v in ["p1600=0", "p1607=1", "p1600=1"]:
+    for v in ["p1600=0", "p1607=1", "p1601=5", "p1602 = 2", "p1604 = 0", "p1600=1"]:
         yield from bps.mv(dtt, v)
         yield from bps.sleep(0.1)
+
+
 
     # TODO make this a message?
     sclr.set_mode("flying")
