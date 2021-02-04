@@ -3,6 +3,7 @@ import matplotlib.pyplot as pp
 element_to_roi = {
     "au": (202, 220),
     "ca": (364, 380),
+    "k": (325, 345),
     "s": (224, 240),
     "p": (192, 210),
     "al": (160,182),

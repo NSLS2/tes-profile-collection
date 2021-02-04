@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from itertools import zip_longest
-from datetime import datetime
+import datetime
 from pathlib import Path
 import pprint
 
@@ -341,7 +341,7 @@ class Serializer(event_model.DocumentRouter):
         if "Scan.start_time" in self._xdi_file_template["optional_headers"]:
             self._event_page_header_line_buffer[
                 "Scan.start_time"
-            ] = datetime.fromtimestamp(doc["time"]).isoformat()
+            ] = datetime.datetime.fromtimestamp(doc["time"]).isoformat()
 
     def _event_page_end_row(self, doc):
         """
@@ -352,7 +352,7 @@ class Serializer(event_model.DocumentRouter):
         if "Scan.end_time" in self._xdi_file_template["optional_headers"]:
             self._event_page_header_line_buffer[
                 "Scan_time.end"
-            ] = datetime.fromtimestamp(doc["time"]).isoformat()
+            ] = datetime.datetime.fromtimestamp(doc["time"]).isoformat()
 
     def _event_page_energy_bins(self, doc):
         self._update_data_columns_from_doc(doc=doc)
@@ -372,7 +372,9 @@ class Serializer(event_model.DocumentRouter):
             + str(self._scan_number[0])
             + "-"
             + datetime.time(
-                hour=now.hour, minute=now.minute, second=now.second
+                hour=now.hour,
+                minute=now.minute,
+                second=now.second
             ).isoformat()
             + ".xdi"
         )

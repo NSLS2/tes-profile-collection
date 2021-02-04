@@ -46,7 +46,7 @@ def Batch_xy_fly(index=None):
 
     # file_path = filedialog.askopenfilename()
     file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
-    data = np.array(pd.read_excel(file_path, sheet_name="xy_fly", index_col=0))
+    data = np.array(pd.read_excel(file_path, sheet_name="xy_fly", index_col=0).dropna())
     xy_fly_stage = xy_stage
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
@@ -104,7 +104,7 @@ def Batch_E_step(index=None):
 
     # file_path = filedialog.askopenfilename()
     file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
-    data = np.array(pd.read_excel(file_path, sheet_name="E_step", index_col=0))
+    data = np.array(pd.read_excel(file_path, sheet_name="E_step", index_col=0).dropna())
     xy_fly_stage = xy_stage
 
     if index is None:
@@ -130,3 +130,22 @@ def Batch_E_step(index=None):
                                step_size=Step_size,
                                num_scans=num_scans,
                                xspress3=xs)
+def Batch_XAS_mapping(index=None):
+
+    file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
+    data = np.array(pd.read_excel(file_path, sheet_name="E_step", index_col=0))
+    if index is None:
+        index = range(data.shape[0])
+    for ii in index:
+        x = data[ii, 0]
+        y = data[ii, 1]
+        z = data[ii, 2]
+        scan_title = data[ii, 3]
+        operator = data[ii, 4]
+        element = data[ii, 5]
+        dwell_time = data[ii, 10]
+        E_sections = list(map(float,data[ii, 8].strip('][').split(',')))
+        Step_size = list(map(float,data[ii, 9].strip('][').split(',')))
+        num_scans = data[ii, 6]
+
+        yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
