@@ -166,7 +166,7 @@ def xy_fly(
     #@bpp.subs_decorator({"all": [roi_livegrid]})
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
-    #@bpp.baseline_decorator([mono, xy_fly_stage])
+    @bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
@@ -295,10 +295,11 @@ def E_fly(
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
- #   roi = rois(element)
- #   yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
- #                     xs.channel1.rois.roi01.bin_high, roi[1])
- #   yield from bps.sleep(0.1)
+#    roi = rois(element)
+#    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0])
+#    yield from bps.sleep(0.5)
+#    yield from bps.mv(xs.channel1.rois.roi01.bin_high, roi[1])
+#    yield from bps.sleep(0.5)
 
     def _linear_to_energy(linear):
         linear = np.asarray(linear)
