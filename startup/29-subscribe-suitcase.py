@@ -12,8 +12,9 @@ suitcase_config = """\
 [columns]
 "Column.1"                    = {column_label="energy",  data_key="E_centers", column_data="{[data][E_centers][0]}", units="eV"}
 "Column.2"                    = {column_label="I0",      data_key="I0", column_data="{data[I0][0]}"}
-"Column.3"                    = {column_label="S_Sclr",      data_key="S", column_data="{data[S][0]}"}
-"Column.4"                    = {column_label="If_XS",      data_key="fluor", column_data="{data[fluor][0]}", transform="e_fly_roi1"}
+"Column.3"                    = {column_label="It",      data_key="fbratio", column_data="{data[fbratio][0]}"}
+"Column.4"                    = {column_label="If_CH1",      data_key="fluor", column_data="{data[fluor][0]}", transform="e_fly_roi1"}
+
 [required_headers]
 "Element.symbol"              = {data="{user_input[element]}", doc_name="start"}
 

@@ -26,6 +26,9 @@ def Batch_E_fly(index=None):
         step_size = data[ii, 8]
         num_scans = data[ii, 9]
         flyspeed = data[ii, 11]
+        detector = data[ii, 10]
+        if detector != "xs":
+            detector = None
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
         yield from E_fly(
             scan_title,
@@ -36,7 +39,7 @@ def Batch_E_fly(index=None):
             step_size=step_size,
             num_scans=num_scans,
             flyspeed=flyspeed,
-            xspress3=xs,
+            xspress3=detector,
         )
 
 
@@ -81,6 +84,9 @@ def Batch_xy_fly(index=None):
         dwell_time = data[ii, 11]
         E_e = data[ii, 12]
         detector = data[ii, 13]
+        if detector != "xs":
+            detector = None
+
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
         yield from bps.sleep(2)
         l_start = _energy_to_linear([E_e])
@@ -95,7 +101,7 @@ def Batch_xy_fly(index=None):
             ystart=ystart,
             ystop=ystop,
             ystep_size=ystep_size,
-            xspress3=xs,
+            xspress3=detector,
         )
 
 def Batch_E_step(index=None):
@@ -117,8 +123,11 @@ def Batch_E_step(index=None):
         operator = data[ii, 4]
         element = data[ii, 5]
         dwell_time = data[ii, 10]
-        E_selections = list(map(float,data[ii, 8].strip('][').split(',')))
-        Step_size = list(map(float,data[ii, 9].strip('][').split(',')))
+        E_sections = list(map(float,data[ii, 8].strip('][').split(',')))
+        if type(data[ii, 9]) == int or type(data[ii, 9]) == float:
+            Step_size = [data[ii, 9]]
+        else:
+            Step_size = list(map(float, data[ii, 9].strip('][').split(',')))
         num_scans = data[ii, 6]
 
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
@@ -126,14 +135,16 @@ def Batch_E_step(index=None):
                                operator=operator,
                                element=element,
                                dwell_time=dwell_time,
-                               E_sections=E_selections,
+                               E_sections=E_sections,
                                step_size=Step_size,
                                num_scans=num_scans,
                                xspress3=xs)
-def Batch_XAS_mapping(index=None):
+
+def Batch_XANES_mapping(index=None):
 
     file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
-    data = np.array(pd.read_excel(file_path, sheet_name="E_step", index_col=0))
+    data = np.array(pd.read_excel(file_path, sheet_name="XANES_mapping", index_col=0))
+    xy_fly_stage = xy_stage
     if index is None:
         index = range(data.shape[0])
     for ii in index:
@@ -143,9 +154,33 @@ def Batch_XAS_mapping(index=None):
         scan_title = data[ii, 3]
         operator = data[ii, 4]
         element = data[ii, 5]
-        dwell_time = data[ii, 10]
-        E_sections = list(map(float,data[ii, 8].strip('][').split(',')))
-        Step_size = list(map(float,data[ii, 9].strip('][').split(',')))
-        num_scans = data[ii, 6]
+        E_sections = list(map(float,data[ii, 6].strip('][').split(',')))
+        if type(data[ii, 7]) == int or type(data[ii, 7]) == float:
+            Step_size = [data[ii, 7]]
+        else:
+            Step_size = list(map(float,data[ii, 7].strip('][').split(',')))
+        xstart =  data[ii, 8]
+        xstop =  data[ii, 9]
+        x_stepsize =  data[ii, 10]
+        ystart = data[ii, 11]
+        ystop = data[ii, 12]
+        y_stepsize = data[ii, 13]
+        dwell_time = data[ii, 14]
 
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
+
+        yield from XANES_mapping(
+                scan_title = scan_title,
+                beamline_operator=operator,
+                element=element,
+                dwell_time=dwell_time,
+                E_sections=E_sections,
+                step_size=Step_size,
+                xstart=xstart,
+                xstop=xstop,
+                x_stepsize=x_stepsize,
+                ystrat=ystart,
+                ystop=ystop,
+                y_stepsize=y_stepsize,
+                xspress3=xs,
+        )

@@ -88,6 +88,8 @@ def xy_fly(
     scan_title : str
        Title of scan, required.
     """
+    if xspress3 != None:
+        xspress3 = xs
     xy_fly_stage = xy_stage
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, "x")
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, "y")
@@ -287,8 +289,11 @@ E_centers.tolerance = 1e-15
 
 
 def E_fly(
-        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=xs
+        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=None
 ):
+    if xspress3 != None:
+        xspress3 = xs
+
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
     assert num_scans > 0, f"num_scans ({num_scans}) must be more than 0"
@@ -383,6 +388,9 @@ def E_fly(
                 "fly_velocity": flyspeed,
                 "num_pixels": num_pixels,
                 "prescale": prescale,
+                "x": xy_stage.x.position,
+                "y": xy_stage.y.position,
+                "z": xy_stage.z.position
             },
         }
     )
@@ -430,7 +438,7 @@ def E_fly(
                 yield from bps.read(xspress3)
 
             yield from bps.save()
-
+            yield from bps.mv(mono.linear.velocity, 1)
 
         for scan_iter in range(num_scans):
             if xspress3 is not None:
@@ -439,9 +447,151 @@ def E_fly(
 
     yield from fly_body()
 
+#export data
     print("Waiting for files... ...")
     yield from bps.sleep(15)
-    artifacts = e_fly_export(db[-1])
-    pprint.pprint(artifacts)
+    export_E_fly(-1)
 
+    '''
+    roi = rois(element)
+    h = db[-1]
+    start = h.start
+
+    d = np.array(list(h.data('fluor', stream_name='primary', fill=True)))
+    If = np.sum(d[:, :, :, roi[0]:roi[1]], axis=-1)
+
+    E = h.table('energy_bins')['E_centers'][1]
+
+    I0 = h.table()['I0']
+    Dwell_time = h.table()['dwell_time']
+    dt = datetime.datetime.fromtimestamp(start["time"])
+    for ii in range(If.shape[0]):
+        df = pd.DataFrame({'#Energy': E,
+                           'Dwell_time': Dwell_time[ii + 1],
+                           'I0': I0[ii + 1],
+                           'If_CH1': If[ii, :, 0, ],
+                           'If_CH2': If[ii, :, 1]
+                           })
+
+        filepath = os.path.expanduser(
+            f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/E_fly/"
+            f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().strftime('%H-%M-%S')}-{ii}.dat")
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+#        with open(filepath, "wt") as output_file:
+ #           output_file.write(pprint.pformat(start))
+
+        df.to_csv(filepath)
+
+
+  #      df.to_csv('/home/xf08bm/Users/TEMP/' + f'{file_name}-{ii}.csv')
+'''
+
+'''
+    if xspress3 is not None:
+        print("Waiting for files... ...")
+        yield from bps.sleep(15)
+        artifacts = e_fly_export(db[-1])
+        pprint.pprint(artifacts)
+    else:
+        h = db[-1]
+        start = h.start
+        #If_sclr = h.table()[element]
+        I_TEY = h.table()["fbratio"]
+        E = h.table('energy_bins')['E_centers'][1]
+
+        I0 = h.table()['I0']
+        It = h.table()['It']
+        Dwell_time = h.table()['dwell_time']
+
+        dt = datetime.datetime.fromtimestamp(start["time"])
+
+        for ii in range(If.shape[0]):
+            df = pd.DataFrame({'#Energy': E,
+                               'Dwell_time': Dwell_time[ii + 1],
+                               'I0': I0[ii + 1],
+                               'It':It[ii + 1],
+                               #'If_sclr': If_sclr[ii + 1],
+                               'I_TEY': I_TEY[ii + 1],
+                               })
+            filepath = os.path.expanduser(
+                f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/E_fly/"
+                f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().strftime('%H-%M-%S')}-{ii}.dat")
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+            df.to_csv(filepath)
+
+'''
+
+
+def XANES_mapping(
+        scan_title,
+        *,
+        beamline_operator = "Yonghua Du",
+        element = "k",
+        dwell_time=0.01,
+        E_sections = [3550,3600],
+        step_size = [1],
+        xstart = 42.5,
+        xstop = 43,
+        x_stepsize = 0.01,
+        ystrat = 35.5,
+        ystop=36,
+        y_stepsize = 0.1,
+        xspress3 = xs,
+
+):
+
+#def E_Step_Scan(dwell_time,*, scan_title = "abc",E_sections = [2700, 2800, 2900, 3200], step_size = [4, 1, 2], num_scans=2, element = 's'):
+
+
+    #for v in ["p1600=0", "p1607=4", "p1601=5", "p1602 = 2", "p1600=1"]:
+        #yield from bps.mv(dtt, v)
+        #yield from bps.sleep(0.1)
+    roi = rois(element)
+    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
+                  xs.channel1.rois.roi01.bin_high, roi[1])
+    yield from bps.sleep(0.1)
+#    xs.channel1.rois.roi01.bin_low.set(roi[0])
+#    xs.channel1.rois.roi01.bin_high.set(roi[1])
+    E_sections = np.array(E_sections)
+    step_size = np.array(step_size)
+
+    ept = []
+    for ii in range(step_size.shape[0]):
+        ept = ept[0:-1]
+        ept = np.append(ept, np.linspace(E_sections[ii], E_sections[ii+1], np.int((E_sections[ii+1] - E_sections[ii])/step_size[ii])+1))
+    #yield from bps.mv(sclr.set_mode,"counting")
+
+    #yield from bps.sleep(0.1)
+    #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
+    #@bpp.baseline_decorator([mono, xy_stage])
+    # TODO put in other meta data
+
+    e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
+    energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
+
+
+    def _energy_to_linear(energy):
+        energy = np.asarray(energy)
+        return 28.2474 + 35.02333 * np.tan(
+            np.pi / 2 - 2 * np.arcsin(e_back / energy) + np.deg2rad(energy_cal)
+        )
+
+    for E_e in ept:
+        l_start = _energy_to_linear([E_e])
+        yield from bps.mv(mono.linear, l_start)
+        yield from bps.sleep(2)
+        yield from xy_fly(
+            scan_title=scan_title,
+            beamline_operator=beamline_operator,
+            dwell_time=dwell_time,
+            xstart=xstart,
+            xstop=xstop,
+            xstep_size=x_stepsize,
+            ystart=ystrat,
+            ystop=ystop,
+            ystep_size=y_stepsize,
+            xspress3=xs,
+        )
 
