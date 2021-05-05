@@ -24,6 +24,7 @@ class Mono(Device):
 
     # linear drive
     linear = Cpt(MresMotor, "XF:08BMA-OP{Mono:1-Ax:Linear}Mtr")
+    tilt = Cpt(MresMotor, "XF:08BMA-OP{Mono:1-Ax:Tilt}Mtr")
 
 
 mono = Mono(name="mono")

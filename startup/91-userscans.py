@@ -98,3 +98,11 @@ def xrfmap(
     scaninfo = yield from xrfmap_scanplan
 
     return scaninfo
+
+
+def test():
+    while I0 < 0.1:
+        print ("Low current")
+        yield from sleep (1)
+    while I0 > 0.1:
+        print("Good current")
