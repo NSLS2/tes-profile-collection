@@ -52,7 +52,11 @@ class TIFFPluginWithFileStore(TIFFPlugin, FileStoreTIFFIterativeWrite):
     pass
 
 
-class HDF5PluginWithFileStore(HDF5Plugin, FileStoreHDF5IterativeWrite):
+class HDF5PluginWithFileStoreBase(HDF5Plugin, FileStoreHDF5IterativeWrite):
+    ...
+
+
+class HDF5PluginWithFileStoreProsilica(HDF5PluginWithFileStoreBase):
     """Add this as a component to detectors that write HDF5s."""
 
     def warmup(self):
@@ -150,7 +154,14 @@ class StandardProsilicaWithTIFF(StandardProsilica):
 
 
 class StandardProsilicaWithHDF5(StandardProsilica):
-    hdf5 = Cpt(HDF5PluginWithFileStore,
+    hdf5 = Cpt(HDF5PluginWithFileStoreProsilica,
+               suffix='HDF1:',
+               write_path_template="/tmp",
+               root='/nsls2/data/tes/legacy/detectors')
+
+
+class WebcamWithHDF5(StandardProsilica):
+    hdf5 = Cpt(HDF5PluginWithFileStoreBase,
                suffix='HDF1:',
                write_path_template="/tmp",
                root='/nsls2/data/tes/legacy/detectors')
@@ -165,7 +176,11 @@ cam6_tiff = StandardProsilicaWithTIFF('XF:08BM-BI{Cam:6}', name='cam6_tiff')
 cam6_tiff.tiff.write_path_template = "/nsls2/data/tes/legacy/detectors/cam6/tiff/%Y/%m/%d/"
 cam6_tiff.cam.ensure_nonblocking()
 
-for camera in [cam6, cam6_tiff]:
+webcam = WebcamWithHDF5("XF:08BM-BI{Axis-Cam:1}", name="webcam")
+webcam.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/webcam/hdf5/%Y/%m/%d/"
+webcam.cam.ensure_nonblocking()
+
+for camera in [cam6, cam6_tiff, webcam]:
     camera.read_attrs = ['stats1', 'stats2', 'stats3', 'stats4', 'stats5']
     for plugin_type in ['hdf5', 'tiff']:
         if hasattr(camera, plugin_type):
@@ -184,7 +199,8 @@ for camera in [cam6, cam6_tiff]:
     # camera.stage_sigs[camera.cam.trigger_mode] = 'Sync In 2'
 
     # 'Fixed Rate' is used for step scans:
-    camera.stage_sigs[camera.cam.trigger_mode] = 'Fixed Rate'
+    if not isinstance(camera, WebcamWithHDF5):
+        camera.stage_sigs[camera.cam.trigger_mode] = 'Fixed Rate'
 
     camera.stage_sigs[camera.cam.array_counter] = 0
     if hasattr(camera, 'tiff'):
