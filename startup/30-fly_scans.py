@@ -207,6 +207,7 @@ def xy_fly(
         def fly_row():
             # go to start of row
             target_y = ystart + y * a_ystep_size
+            yield from bps.checkpoint()
             yield from bps.mv(xy_fly_stage.x, xstart, xy_fly_stage.y, target_y)
             yield from bps.mv(
                 y_centers, np.ones(num_xpixels) * target_y
@@ -233,18 +234,21 @@ def xy_fly(
             # maybe start the xspress3
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_row_{y}")
-            #  revised by YDu, use to be 0.1
-            yield from bps.sleep(1.5)            # fly the motor
-            yield from bps.abs_set(
+            #  revised by YDu, use to be 1.5
+            yield from bps.sleep(0.5)            # fly the motor
+         #   yield from bps.abs_set(
+         #       xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
+         #   )
+            yield from bps.mov(
                 xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             )
             yield from bps.wait(group=f"fly_row_{y}")
 
             # yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
-            yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
+            yield from bps.mov(xy_fly_stage.x.velocity, 5.0)
             #  revised by YDu, use to be 0.1
-            yield from bps.sleep(0.1)
-            # read and save the struck
+            #yield from bps.sleep(0.1)
+            # read and save the struckhi
             yield from bps.create(name="primary")
             #
             yield from bps.read(sclr)
@@ -257,9 +261,10 @@ def xy_fly(
             # and maybe the xspress3
             if xspress3 is not None:
                 yield from bps.read(xspress3)
-            yield from bps.sleep(0.2)
+            #  rvised by YDu, use to be 0.2e
+        #    yield from bps.sleep(0.2)
             yield from bps.save()
-            yield from bps.sleep(0.2)
+        #    yield from bps.sleep(0.2)
        #     if 5 - abs(xstop - xstart)/5 > 0:
         #        #print(5 - abs(xstop - xstart)/5)
          #       time.sleep(5.3 - abs(xstop - xstart)/5)
@@ -282,6 +287,8 @@ def xy_fly(
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "wt") as output_file:
         output_file.write(pprint.pformat(start))
+
+
 
 
 E_centers = Signal(value=[], name="E_centers", kind="normal")

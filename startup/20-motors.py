@@ -1,5 +1,6 @@
 from ophyd import EpicsSignal, EpicsMotor, Device, Component as Cpt
-
+from ophyd.signal import EpicsSignalBase
+EpicsSignalBase.set_defaults(timeout=20)
 
 class MresMotor(EpicsMotor):
     mres = Cpt(EpicsSignal, ".MRES", kind="config")
@@ -28,7 +29,8 @@ class Mono(Device):
 
 
 mono = Mono(name="mono")
-mono.energy.settle_time = 2.0
+mono.energy.settle_time = 2.5
+mono.linear.settle_time = 2.5
 #mono.settle_time = 2.0
 
 dtt = EpicsSignal("XF:08BM-CT{MC:06}Asyn.AOUT", name="dtt", string=True)
