@@ -176,11 +176,15 @@ cam6_tiff = StandardProsilicaWithTIFF('XF:08BM-BI{Cam:6}', name='cam6_tiff')
 cam6_tiff.tiff.write_path_template = "/nsls2/data/tes/legacy/detectors/cam6/tiff/%Y/%m/%d/"
 cam6_tiff.cam.ensure_nonblocking()
 
-webcam = WebcamWithHDF5("XF:08BM-BI{Axis-Cam:1}", name="webcam")
-webcam.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/webcam/hdf5/%Y/%m/%d/"
-webcam.cam.ensure_nonblocking()
+es_webcam = WebcamWithHDF5("XF:08BM-BI{Axis-Cam:1}", name="es_webcam")
+es_webcam.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/es_webcam/hdf5/%Y/%m/%d/"
+es_webcam.cam.ensure_nonblocking()
 
-for camera in [cam6, cam6_tiff, webcam]:
+vlm_webcam = WebcamWithHDF5("XF:08BM-ES{Axis-Cam:2}", name="vlm_webcam")
+vlm_webcam.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/vlm_webcam/hdf5/%Y/%m/%d/"
+vlm_webcam.cam.ensure_nonblocking()
+
+for camera in [cam6, cam6_tiff, es_webcam, vlm_webcam]:
     camera.read_attrs = ['stats1', 'stats2', 'stats3', 'stats4', 'stats5']
     for plugin_type in ['hdf5', 'tiff']:
         if hasattr(camera, plugin_type):
@@ -206,3 +210,33 @@ for camera in [cam6, cam6_tiff, webcam]:
     if hasattr(camera, 'tiff'):
         camera.stage_sigs[camera.tiff.array_counter] = 0
     camera.stats1.total.kind = 'hinted'
+
+
+from area_detector_handlers.handlers import AreaDetectorHDF5Handler
+class ADURLHDF5Handler(AreaDetectorHDF5Handler):
+    """
+    Modification of the Area Detector handler HDF5 for RGB data.
+
+    In this spec, the key (i.e., HDF5 dataset path) is always
+    '/entry/data/data'.
+
+    Parameters
+    ----------
+    filename : string
+        path to HDF5 file
+    frame_per_point : integer, optional
+        number of frames to return as one datum, default 1
+    """
+
+    def __init__(self, filename, frame_per_point=1):
+        hardcoded_key = "/entry/data/data"
+        super().__init__(
+            filename=filename, frame_per_point=frame_per_point
+        )
+
+        self(0)
+        nframes, nx, ny, _ = self._dataset.shape
+        self._dataset.reshape((nframes, 3, nx, ny))
+
+
+db.reg.register_handler("AD_HDF5", ADURLHDF5Handler, overwrite=True)
