@@ -1,3 +1,6 @@
+from ophyd.signal import EpicsSignalBase
+EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)
+
 from nslsii import configure_base
 from IPython import get_ipython
 

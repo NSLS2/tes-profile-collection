@@ -209,7 +209,18 @@ for camera in [cam6, cam6_tiff, es_webcam, vlm_webcam]:
     camera.stage_sigs[camera.cam.array_counter] = 0
     if hasattr(camera, 'tiff'):
         camera.stage_sigs[camera.tiff.array_counter] = 0
+
     camera.stats1.total.kind = 'hinted'
+    camera.stats2.total.kind = 'hinted'
+
+cam6.roi1.kind = "config"
+cam6.roi2.kind = "config"
+cam6.roi1.size.kind = "config"
+cam6.roi1.min_xyz.kind = "config"
+cam6.roi2.size.kind = "config"
+cam6.roi2.min_xyz.kind = "config"
+sd.baseline.extend([cam6.roi1.size, cam6.roi1.min_xyz,
+                    cam6.roi2.size, cam6.roi2.min_xyz])
 
 
 from area_detector_handlers.handlers import AreaDetectorHDF5Handler
@@ -239,4 +250,6 @@ class ADURLHDF5Handler(AreaDetectorHDF5Handler):
         self._dataset.reshape((nframes, 3, nx, ny))
 
 
-db.reg.register_handler("AD_HDF5", ADURLHDF5Handler, overwrite=True)
+# NOTE: commenting it out to use the standard handler for the 'AD_HDF5' spec
+# for StandardProsilica (cam6, etc.)
+# db.reg.register_handler("AD_HDF5", ADURLHDF5Handler, overwrite=True)
