@@ -7,7 +7,7 @@ from pathlib import Path
 import cv2
 import h5py
 import numpy as np
-from area_detector_handlers import HandlerBase
+from area_detector_handlers.handlers import HandlerBase
 from event_model import compose_resource
 from ophyd import Component as Cpt
 from ophyd import Device, Signal
@@ -34,7 +34,7 @@ class ExternalFileReference(Signal):
 
 class VideoStreamDet(Device):
     image = Cpt(ExternalFileReference, kind="normal")
-    exposure_period = Cpt(Signal, value=1.0, kind="config")
+    exposure_time = Cpt(Signal, value=1.0, kind="config")
 
     def __init__(
         self,
@@ -93,7 +93,7 @@ class VideoStreamDet(Device):
             # cv2.imshow('Video', frame)
             logger.debug(f"shape: {frame.shape}")
 
-            if ttime.monotonic() - start >= self.exposure_period.get():
+            if ttime.monotonic() - start >= self.exposure_time.get():
                 break
 
             if cv2.waitKey(1) == 27:
@@ -121,7 +121,7 @@ class VideoStreamDet(Device):
 
     def describe(self):
         res = super().describe()
-        res[self.image.name].update(dict(shape=[480, 704]))
+        res[self.image.name].update(dict(shape=(480, 704)))
         return res
 
     def unstage(self):
@@ -136,9 +136,11 @@ class VideoStreamDet(Device):
 
 
 vstream = VideoStreamDet(
-    video_stream_url="http://10.68.57.34/mjpg/video.mjpg", name="vstream"
+    video_stream_url="http://10.68.57.34/mjpg/video.mjpg",
+    root_dir="/nsls2/data/tes/legacy/detectors/vlm_ophyd",
+    name="vstream",
 )
-vstream.exposure_period.put(0.5)
+vstream.exposure_time.put(0.25)
 
 
 class VideoStreamHDF5Handler(HandlerBase):
