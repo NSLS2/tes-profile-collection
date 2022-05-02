@@ -206,10 +206,11 @@ def xy_fly(
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
         def fly_row():
             # go to start of row
+            yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
             target_y = ystart + y * a_ystep_size
             yield from bps.checkpoint()
             yield from bps.mv(xy_fly_stage.x, xstart, xy_fly_stage.y, target_y)
-            yield from bps.mv(
+            yield from bps.abs_set(
                 y_centers, np.ones(num_xpixels) * target_y
             )  # set the fly speed
 
@@ -230,24 +231,25 @@ def xy_fly(
 
 
             # arm the struck
-            yield from bps.trigger(sclr, group=f"fly_row_{y}")
+
             # maybe start the xspress3
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_row_{y}")
+            yield from bps.trigger(sclr, group=f"fly_row_{y}")
             #  revised by YDu, use to be 1.5
-            yield from bps.sleep(0.5)            # fly the motor
-         #   yield from bps.abs_set(
-         #       xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
-         #   )
-            yield from bps.mov(
+            yield from bps.sleep(1.0)            # fly the motor
+            yield from bps.abs_set(
                 xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             )
+            #yield from bps.mv(
+            #    xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
+            #)
             yield from bps.wait(group=f"fly_row_{y}")
 
             # yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
-            yield from bps.mov(xy_fly_stage.x.velocity, 5.0)
+            yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
             #  revised by YDu, use to be 0.1
-            #yield from bps.sleep(0.1)
+            yield from bps.sleep(0.0)
             # read and save the struckhi
             yield from bps.create(name="primary")
             #
@@ -262,16 +264,16 @@ def xy_fly(
             if xspress3 is not None:
                 yield from bps.read(xspress3)
             #  rvised by YDu, use to be 0.2e
-        #    yield from bps.sleep(0.2)
+            yield from bps.sleep(0.0)
             yield from bps.save()
-        #    yield from bps.sleep(0.2)
+            yield from bps.sleep(0.0)
        #     if 5 - abs(xstop - xstart)/5 > 0:
         #        #print(5 - abs(xstop - xstart)/5)
          #       time.sleep(5.3 - abs(xstop - xstart)/5)
 
         for y in range(num_ypixels):
             if xspress3 is not None:
-                yield from bps.mv(xspress3.fly_next, True)
+                yield from bps.mov(xspress3.fly_next, True)
 
             yield from fly_row()
 

@@ -39,7 +39,6 @@ RE.install_suspender(sus_abs_hi)
 
 
 '''
-
 ############################
 
 ring_current = EpicsSignal('SR:OPS-BI{DCCT:1}I:Real-I')
@@ -67,10 +66,8 @@ RE.install_suspender(ring_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
 RE.install_suspender(I0_suspenderFloor)
-
-#####################################
-
 '''
+#####################################
 
 
 
