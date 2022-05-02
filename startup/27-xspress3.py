@@ -185,12 +185,12 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     hdf5 = Cpt(
         Xspress3FileStoreFlyable,
         "HDF5:",
-        read_path_template="/nsls2/xf08bm/data/xspress3/%Y/%m/%d/",
-        write_path_template="/DATA/%Y/%m/%d/",
-        root="/nsls2/xf08bm/data/",
-        #read_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
-        #write_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
-        #root="/nsls2/data/tes/assets/",
+        #read_path_template="/nsls2/xf08bm/data/xspress3/%Y/%m/%d/",
+        #write_path_template="/DATA/%Y/%m/%d/",
+        #root="/nsls2/xf08bm/data/",
+        read_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
+        write_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
+        root="/nsls2/data/tes/assets/",
         #read_path_template="/tmp",
         #write_path_template="/tmp",
     )
