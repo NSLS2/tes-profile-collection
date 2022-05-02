@@ -3,19 +3,19 @@ resources:
     - repository: templates
       type: github
       name: NSLS-II/profile-collection-ci
-      ref: refs/heads/main
+      ref: refs/heads/2022-2.4
       endpoint: github
 
 jobs:
-  - template: 2022-2.2-py39-tiled.yml@templates
+  - template: 2022-2.4-py38.yml@templates
     parameters:
       beamline_acronym: TES
-  - template: 2022-2.2-py38-tiled.yml@templates
+  - template: 2022-2.4-py39.yml@templates
     parameters:
       beamline_acronym: TES
-  - template: 2022-2.3-py39-tiled.yml@templates
+  - template: 2022-2.4-py38-tiled.yml@templates
     parameters:
       beamline_acronym: TES
-  - template: 2022-2.3-py38-tiled.yml@templates
+  - template: 2022-2.4-py39-tiled.yml@templates
     parameters:
       beamline_acronym: TES
