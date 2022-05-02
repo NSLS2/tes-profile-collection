@@ -56,6 +56,12 @@ class HDF5PluginWithFileStoreBase(HDF5Plugin, FileStoreHDF5IterativeWrite):
     ...
 
 
+class HDF5PluginWithFileStoreBaseRGB(HDF5PluginWithFileStoreBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filestore_spec = "AD_HDF5_RGB"
+
+
 class HDF5PluginWithFileStoreProsilica(HDF5PluginWithFileStoreBase):
     """Add this as a component to detectors that write HDF5s."""
 
@@ -161,7 +167,7 @@ class StandardProsilicaWithHDF5(StandardProsilica):
 
 
 class WebcamWithHDF5(StandardProsilica):
-    hdf5 = Cpt(HDF5PluginWithFileStoreBase,
+    hdf5 = Cpt(HDF5PluginWithFileStoreBaseRGB,
                suffix='HDF1:',
                write_path_template="/tmp",
                root='/nsls2/data/tes/legacy/detectors')
@@ -176,6 +182,15 @@ cam6_tiff = StandardProsilicaWithTIFF('XF:08BM-BI{Cam:6}', name='cam6_tiff')
 cam6_tiff.tiff.write_path_template = "/nsls2/data/tes/legacy/detectors/cam6/tiff/%Y/%m/%d/"
 cam6_tiff.cam.ensure_nonblocking()
 
+cam7 = StandardProsilicaWithHDF5('XF:08BM-BI{Cam:7}', name='cam7')
+cam7.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/cam7/hdf5/%Y/%m/%d/"
+cam7.cam.ensure_nonblocking()
+
+cam7_tiff = StandardProsilicaWithTIFF('XF:08BM-BI{Cam:7}', name='cam7_tiff')
+cam7_tiff.tiff.write_path_template = "/nsls2/data/tes/legacy/detectors/cam7/tiff/%Y/%m/%d/"
+cam7_tiff.cam.ensure_nonblocking()
+
+# Webcams wrapped into ADURL IOC:
 es_webcam = WebcamWithHDF5("XF:08BM-BI{Axis-Cam:1}", name="es_webcam")
 es_webcam.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/es_webcam/hdf5/%Y/%m/%d/"
 es_webcam.cam.ensure_nonblocking()
@@ -184,7 +199,7 @@ vlm_webcam = WebcamWithHDF5("XF:08BM-ES{Axis-Cam:2}", name="vlm_webcam")
 vlm_webcam.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/vlm_webcam/hdf5/%Y/%m/%d/"
 vlm_webcam.cam.ensure_nonblocking()
 
-for camera in [cam6, cam6_tiff, es_webcam, vlm_webcam]:
+for camera in [cam6, cam6_tiff, cam7, cam7_tiff, es_webcam, vlm_webcam]:
     camera.read_attrs = ['stats1', 'stats2', 'stats3', 'stats4', 'stats5']
     for plugin_type in ['hdf5', 'tiff']:
         if hasattr(camera, plugin_type):
@@ -213,43 +228,37 @@ for camera in [cam6, cam6_tiff, es_webcam, vlm_webcam]:
     camera.stats1.total.kind = 'hinted'
     camera.stats2.total.kind = 'hinted'
 
-cam6.roi1.kind = "config"
-cam6.roi2.kind = "config"
-cam6.roi1.size.kind = "config"
-cam6.roi1.min_xyz.kind = "config"
-cam6.roi2.size.kind = "config"
-cam6.roi2.min_xyz.kind = "config"
+
+for cam in [cam6, cam7]:
+    cam.roi1.kind = "config"
+    cam.roi2.kind = "config"
+    cam.roi1.size.kind = "config"
+    cam.roi1.min_xyz.kind = "config"
+    cam.roi2.size.kind = "config"
+    cam.roi2.min_xyz.kind = "config"
+
 sd.baseline.extend([cam6.roi1.size, cam6.roi1.min_xyz,
                     cam6.roi2.size, cam6.roi2.min_xyz])
 
 
-from area_detector_handlers.handlers import AreaDetectorHDF5Handler
+import dask
+from area_detector_handlers.handlers import AreaDetectorHDF5Handler, H5PY_KEYERROR_IOERROR_MSG
+
+
 class ADURLHDF5Handler(AreaDetectorHDF5Handler):
     """
     Modification of the Area Detector handler HDF5 for RGB data.
-
-    In this spec, the key (i.e., HDF5 dataset path) is always
-    '/entry/data/data'.
-
-    Parameters
-    ----------
-    filename : string
-        path to HDF5 file
-    frame_per_point : integer, optional
-        number of frames to return as one datum, default 1
     """
+    def __call__(self, point_number):
+        # Don't read out the dataset until it is requested for the first time.
+        if self._dataset is None:
+            try:
+                self._dataset = dask.array.from_array(self._file[self._key])
+                self._dataset = self._dataset.sum(axis=-1)
+            except KeyError as error:
+                raise IOError(H5PY_KEYERROR_IOERROR_MSG) from error
 
-    def __init__(self, filename, frame_per_point=1):
-        hardcoded_key = "/entry/data/data"
-        super().__init__(
-            filename=filename, frame_per_point=frame_per_point
-        )
-
-        self(0)
-        nframes, nx, ny, _ = self._dataset.shape
-        self._dataset.reshape((nframes, 3, nx, ny))
+        return super().__call__(point_number)
 
 
-# NOTE: commenting it out to use the standard handler for the 'AD_HDF5' spec
-# for StandardProsilica (cam6, etc.)
-# db.reg.register_handler("AD_HDF5", ADURLHDF5Handler, overwrite=True)
+db.reg.register_handler("AD_HDF5_RGB", ADURLHDF5Handler, overwrite=True)
