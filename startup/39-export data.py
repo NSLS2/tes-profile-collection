@@ -88,9 +88,14 @@ def export_E_step(scanID=-1, scan_iter=0):
     If_2_roi3 = h.table()['xs_channel2_rois_roi03_value_sum']
     If_2_roi4 = h.table()['xs_channel2_rois_roi04_value_sum']
 
-    df = pd.DataFrame({'#Energy': E, 'I0': I0, 'I_TEY':I_TEY,
-                       'If_CH1_roi1': If_1_roi1, 'If_CH1_roi2': If_1_roi2, 'If_CH1_roi3':If_1_roi3, 'If_CH1_roi4': If_1_roi4,
-                       'If_CH2_roi1': If_2_roi1, 'If_CH2_roi2': If_2_roi2, 'If_CH2_roi3':If_2_roi3, 'If_CH2_roi4': If_2_roi4})
+    #df = pd.DataFrame({'#Energy': E, 'I0': I0, 'I_TEY':I_TEY,
+    #                   'If_CH1_roi1': If_1_roi1, 'If_CH1_roi2': If_1_roi2, 'If_CH1_roi3':If_1_roi3, 'If_CH1_roi4': If_1_roi4,
+    #                   'If_CH2_roi1': If_2_roi1, 'If_CH2_roi2': If_2_roi2, 'If_CH2_roi3':If_2_roi3, 'If_CH2_roi4': If_2_roi4})
+    df = pd.DataFrame({'#Energy': E, 'I0': I0, 'I_TEY': I_TEY,
+                       'If_CH1_roi1': If_1_roi1, 'If_CH1_roi2': If_1_roi2, 'If_CH1_roi3': If_1_roi3,
+                       'If_CH1_roi4': If_1_roi4})
+    #df['#Energy'] = df1['#Energy'].str.rjust(13, " ")
+
     start = h.start
     dt = datetime.datetime.fromtimestamp(start["time"])
 

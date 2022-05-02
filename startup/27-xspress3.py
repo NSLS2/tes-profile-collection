@@ -191,6 +191,8 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
         #read_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
         #write_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
         #root="/nsls2/data/tes/assets/",
+        #read_path_template="/tmp",
+        #write_path_template="/tmp",
     )
 
     # this is used as a latch to put the xspress3 into 'bulk' mode
