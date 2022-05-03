@@ -429,6 +429,9 @@ def E_fly(
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_energy_{y}")
 
+            # TODO: Figure out why this sleep is needed.
+            yield from bps.sleep(2)
+
             # fly the motor
             yield from bps.abs_set(
                 mono.linear, l_stop + a_l_step_size, group=f"fly_energy_{y}"

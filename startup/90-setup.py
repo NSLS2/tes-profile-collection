@@ -17,7 +17,6 @@ from bluesky.utils import short_uid as _short_uid
 import numpy
 import time
 from epics import PV
-from databroker import get_table
 import collections
 
 
