@@ -13,6 +13,9 @@ import bluesky.preprocessors as bpp
 
 from bluesky.callbacks import LiveGrid
 
+# Add extra devices to the baseline.
+# Don't use the baseline decorator because it can create conflicts.
+sd.baseline.extend([mono, xy_stage])
 
 # Testing VI with Yonghua
 
@@ -168,7 +171,7 @@ def xy_fly(
     #@bpp.subs_decorator({"all": [roi_livegrid]})
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([mono, xy_fly_stage])
+    #@bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
@@ -376,7 +379,7 @@ def E_fly(
     @bpp.stage_decorator([sclr])
     # @bpp.subs_decorator({"all": [roi_livegrid]})
     @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
-    @bpp.baseline_decorator([mono, xy_stage])
+    #@bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={

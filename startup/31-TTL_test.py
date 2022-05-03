@@ -156,7 +156,7 @@ def TTL_test(
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([mono, xy_fly_stage])
+    #@bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
