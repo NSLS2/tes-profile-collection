@@ -13,6 +13,9 @@ import bluesky.preprocessors as bpp
 
 from bluesky.callbacks import LiveGrid
 
+# Add extra devices to the baseline.
+# Don't use the baseline decorator because it can create conflicts.
+sd.baseline.extend([mono, xy_stage])
 
 # Testing VI with Yonghua
 
@@ -168,7 +171,7 @@ def xy_fly(
     #@bpp.subs_decorator({"all": [roi_livegrid]})
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     @bpp.stage_decorator([sclr])
-    @bpp.baseline_decorator([mono, xy_fly_stage])
+    #@bpp.baseline_decorator([mono, xy_fly_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
@@ -237,7 +240,7 @@ def xy_fly(
                 yield from bps.trigger(xspress3, group=f"fly_row_{y}")
             yield from bps.trigger(sclr, group=f"fly_row_{y}")
             #  revised by YDu, use to be 1.5
-            yield from bps.sleep(1.0)            # fly the motor
+            yield from bps.sleep(2)            # fly the motor
             yield from bps.abs_set(
                 xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             )
@@ -376,7 +379,7 @@ def E_fly(
     @bpp.stage_decorator([sclr])
     # @bpp.subs_decorator({"all": [roi_livegrid]})
     @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
-    @bpp.baseline_decorator([mono, xy_stage])
+    #@bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
@@ -428,7 +431,10 @@ def E_fly(
             yield from bps.trigger(sclr, group=f"fly_energy_{y}")
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_energy_{y}")
+
+            # TODO: Figure out why this sleep is needed.
             yield from bps.sleep(2)
+
             # fly the motor
             yield from bps.abs_set(
                 mono.linear, l_stop + a_l_step_size, group=f"fly_energy_{y}"
