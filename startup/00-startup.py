@@ -4,7 +4,9 @@ EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)
 from nslsii import configure_base
 from IPython import get_ipython
 
-configure_base(get_ipython().user_ns, "tes")
+configure_base(get_ipython().user_ns,
+               "tes",
+               publish_documents_with_kafka=True)
 
 import logging
 
