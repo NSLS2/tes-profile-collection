@@ -240,7 +240,7 @@ def xy_fly(
                 yield from bps.trigger(xspress3, group=f"fly_row_{y}")
             yield from bps.trigger(sclr, group=f"fly_row_{y}")
             #  revised by YDu, use to be 1.5
-            yield from bps.sleep(1.0)            # fly the motor
+            yield from bps.sleep(2)            # fly the motor
             yield from bps.abs_set(
                 xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             )
