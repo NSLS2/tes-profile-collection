@@ -282,7 +282,5 @@ xs.settings.configuration_attrs = [
 ]
 xs.energy_calibration.kind = "config"
 
-# This is necessary for when the ioc restarts
-# we have to trigger one image for the hdf5 plugin to work correclty
-# else, we get file writing errors
-xs.hdf5.warmup()
+# Warm-up the hdf5 plugins:
+warmup_hdf5_plugins([xs])

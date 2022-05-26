@@ -239,12 +239,7 @@ for cam in [cam6, cam7]:
     cam.roi2.min_xyz.kind = "config"
 
 # Warm-up the hdf5 plugins:
-for cam in [cam6, cam7]:
-    _array_size = cam.hdf5.array_size.get()
-    if 0 in [_array_size.height, _array_size.width] and hasattr(cam, "hdf5"):
-        print(f"\n  Warming up HDF5 plugin for {cam.name} as the array_size={_array_size}...")
-        cam.hdf5.warmup()
-        print(f"  Warming up HDF5 plugin for {cam.name} is done. array_size={cam.hdf5.array_size.get()}\n")
+warmup_hdf5_plugins([cam6, cam7])
 
 sd.baseline.extend([cam6.roi1.size, cam6.roi1.min_xyz,
                     cam6.roi2.size, cam6.roi2.min_xyz])
