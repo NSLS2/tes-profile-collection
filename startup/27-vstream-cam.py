@@ -34,6 +34,7 @@ class ExternalFileReference(Signal):
 
 class VideoStreamDet(Device):
     image = Cpt(ExternalFileReference, kind="normal")
+    mean = Cpt(Signal, value=0.0, kind="hinted")
     exposure_time = Cpt(Signal, value=1.0, kind="config")
 
     def __init__(
@@ -113,6 +114,7 @@ class VideoStreamDet(Device):
         self._asset_docs_cache.append(("datum", datum_document))
 
         self.image.put(datum_document["datum_id"])
+        self.mean.put(averaged.mean())
 
         self._resource_document = None
         self._datum_factory = None
