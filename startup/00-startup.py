@@ -123,3 +123,5 @@ def warmup_hdf5_plugins(detectors):
             print(f"\n  Warming up HDF5 plugin for {det.name} as the array_size={_array_size}...")
             det.hdf5.warmup()
             print(f"  Warming up HDF5 plugin for {det.name} is done. array_size={det.hdf5.array_size.get()}\n")
+        else:
+            print(f"\n  Warming up of the HDF5 plugin is not needed for {det.name} as the array_size={_array_size}.")
