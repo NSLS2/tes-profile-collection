@@ -141,3 +141,13 @@ def get_random_walk(n, n_cycles, range=[-1, 1]):
 #     motor_positions.append(get_random_walk(n=1000,n_cycles=10,range=motor_range))
 
 #     plt.plot(motor_positions[-1])
+
+
+def kb_trajectories(n, n_cycles, ranges=[]):
+    trajectories = []
+    for rng in ranges:
+        trajectories.append(get_random_walk(n, n_cycles, range=rng))
+    return trajectories
+
+# Example run:
+# kb_traj_list = kb_trajectories(1000, 16, ranges=[kbh_ranges["dsh"], kbh_ranges["ush"], kbv_ranges["dsh"], kbv_ranges["ush"]])
