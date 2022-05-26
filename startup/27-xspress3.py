@@ -114,7 +114,7 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
             ttime.sleep(0.1)  # abundance of caution
             set_and_wait(sig, val)
 
-        ttime.sleep(2)  # wait for acquisition
+        ttime.sleep(0)  # wait for acquisition
 
         for sig, val in reversed(list(original_vals.items())):
             ttime.sleep(0.1)
@@ -173,7 +173,7 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     # Currently only using three channels. Uncomment these to enable more
     #revised on 2/17/21#revised for ch1&2 xs 3/8/21
     channel1 = C(Xspress3Channel, "C1_", channel_num=1, read_attrs=["rois"])
-    channel2 = C(Xspress3Channel, "C2_", channel_num=2, read_attrs=["rois"])
+    #channel2 = C(Xspress3Channel, "C2_", channel_num=2, read_attrs=["rois"])
     # channels:
     # channel3 = C(Xspress3Channel, 'C3_', channel_num=3, read_attrs=['rois'])
     # channel4 = C(Xspress3Channel, 'C4_', channel_num=4)
@@ -216,8 +216,8 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
             ]
         if read_attrs is None:
             #revised for ch1&2 xs 3/8/21
-            read_attrs = ["channel1", "channel2", "hdf5"]
-            #read_attrs = ["channel1", "hdf5"]
+            #read_attrs = ["channel1", "channel2", "hdf5"]
+            read_attrs = ["channel1", "hdf5"]
         super().__init__(
             prefix,
             configuration_attrs=configuration_attrs,
@@ -252,11 +252,11 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
 #revised for ch1&2 xs 3/8/21
 xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
 xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
-xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+#xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
 xs.hdf5.num_extra_dims.put(0)
 xs.channel1.vis_enabled.put(1)
-xs.channel2.vis_enabled.put(1)
-xs.settings.num_channels.put(2)
+#xs.channel2.vis_enabled.put(1)
+xs.settings.num_channels.put(1)
 
 xs.settings.configuration_attrs = [
     "acquire_period",
