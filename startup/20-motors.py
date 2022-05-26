@@ -1,6 +1,5 @@
 from ophyd import EpicsSignal, EpicsSignalRO, EpicsMotor, Device, Component as Cpt
-from ophyd.signal import EpicsSignalBase
-EpicsSignalBase.set_defaults(timeout=20)
+
 
 class MresMotor(EpicsMotor):
     mres = Cpt(EpicsSignal, ".MRES", kind="config")
