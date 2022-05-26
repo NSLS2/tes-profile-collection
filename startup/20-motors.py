@@ -1,4 +1,4 @@
-from ophyd import EpicsSignal, EpicsMotor, Device, Component as Cpt
+from ophyd import EpicsSignal, EpicsSignalRO, EpicsMotor, Device, Component as Cpt
 from ophyd.signal import EpicsSignalBase
 EpicsSignalBase.set_defaults(timeout=20)
 
@@ -56,3 +56,16 @@ sd.baseline = [
     toroidal_mirror.dsh,
     toroidal_mirror.ush
 ]
+
+
+class KBMirror(Device):
+    dsh = Cpt(EpicsMotor, "BD}Mtr")
+    ush = Cpt(EpicsMotor, "YD}Mtr")
+
+    dsb_rbv = Cpt(EpicsSignalRO, "BU}Mtr.RBV", kind="config")
+    dsb = Cpt(EpicsSignalRO, "BU}Mtr.VAL", kind="config")
+    usb_rbv = Cpt(EpicsSignalRO, "YU}Mtr.RBV", kind="config")
+    usb = Cpt(EpicsSignalRO, "YU}Mtr.VAL", kind="config")
+
+kbh = KBMirror("XF:08BMES-OP{Mir:KBH-Ax:", name="kbh")
+kbv = KBMirror("XF:08BMES-OP{Mir:KBV-Ax:", name="kbv")
