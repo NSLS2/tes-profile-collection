@@ -1,3 +1,4 @@
+import numpy as np
 from bluesky.callbacks.broker import post_run
 from bluesky.callbacks.mpl_plotting import LiveGrid
 from bluesky.plans import outer_product_scan
@@ -106,3 +107,37 @@ def test():
         yield from sleep (1)
     while I0 > 0.1:
         print("Good current")
+
+
+# Functions for custom scans using KB-mirrors and vstream cam:
+
+@bpp.stage_decorator([vstream, I0, ring_current, kbh.dsh])
+@bpp.run_decorator()
+def myplan():
+    start_pos = 3.34
+    yield from bps.mv(kbh.dsh, start_pos-0.10)
+    yield from bps.abs_set(kbh.dsh, start_pos+0.15, wait=False, group="mover")
+    yield from bps.trigger_and_read([vstream, I0, ring_current, kbh.dsh])
+    yield from bps.wait(group="mover")
+    yield from bps.mv(kbh.dsh, start_pos)
+
+
+def get_random_walk(n, n_cycles, range=[-1, 1]):
+
+    res = np.real(np.fft.ifft(np.fft.fft(np.random.standard_normal(size=n)) * np.exp(-np.abs(np.fft.fftfreq(n, n_cycles/n)))))
+    res -= res.mean()
+
+    res_quartiles = np.percentile(res,q=[5,95])
+    res *= np.diff(range) / np.diff(res_quartiles)
+    res += range[0] - np.percentile(res,q=5)
+
+    return res
+
+# motor_ranges = 4*[[-.1,.1]]
+
+# plt.figure()
+# motor_positions = []
+# for motor_range in motor_ranges:
+#     motor_positions.append(get_random_walk(n=1000,n_cycles=10,range=motor_range))
+
+#     plt.plot(motor_positions[-1])
