@@ -3,6 +3,7 @@ This file came from https://github.com/NSLS-II-HXN/flyer_profile/blob/master/sta
 with minor modifications of the PV names and cam names.
 """
 import time as ttime  # tea time
+from collections import OrderedDict
 from types import SimpleNamespace
 from datetime import datetime
 from ophyd import (ProsilicaDetector, ProsilicaDetectorCam, SingleTrigger,
@@ -236,6 +237,9 @@ for cam in [cam6, cam7]:
     cam.roi1.min_xyz.kind = "config"
     cam.roi2.size.kind = "config"
     cam.roi2.min_xyz.kind = "config"
+
+# Warm-up the hdf5 plugins:
+warmup_hdf5_plugins([cam6, cam7])
 
 sd.baseline.extend([cam6.roi1.size, cam6.roi1.min_xyz,
                     cam6.roi2.size, cam6.roi2.min_xyz])
