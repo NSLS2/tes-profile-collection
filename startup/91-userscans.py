@@ -191,7 +191,8 @@ def scan_with_random_walk(detectors=[vstream, I0, ring_current],
 
     motors_ranges_str = {mirror.name: motor_dict for mirror, motor_dict in motors_ranges.items()}
 
-    md = {"plan_args": {"detectors": [det.name for det in detectors],
+    md = {"plan_name": "scan_with_random_walk",
+          "plan_args": {"detectors": [det.name for det in detectors],
                         "args": [motors_str,
                                  f'kb_trajectories({num_points}, {num_cycles}, motors_ranges={motors_ranges_str}']},
           "plan_pattern_args": "See 'plan_args'"}
