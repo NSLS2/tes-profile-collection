@@ -81,7 +81,7 @@ class VideoStreamDet(Device):
         self._resource_document.pop("run_start")
         self._asset_docs_cache.append(("resource", self._resource_document))
 
-        print(f"{self._data_file = }")
+        logger.debug(f"{self._data_file = }")
 
         self._h5file_desc = h5py.File(self._data_file, "w")
         group = self._h5file_desc.create_group("/entry")
@@ -124,7 +124,7 @@ class VideoStreamDet(Device):
 
         current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self._frame_shape))
-        print(f"{self._dataset = }\n{self._dataset.shape = }")
+        logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
         self._dataset[current_frame, :, :] = averaged
 
         datum_document = self._datum_factory(datum_kwargs={"frame": current_frame})
