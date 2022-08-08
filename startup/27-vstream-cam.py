@@ -83,11 +83,13 @@ class VideoStreamDet(Device):
 
         logger.debug(f"{self._data_file = }")
 
-        self._h5file_desc = h5py.File(self._data_file, "w")
+        self._h5file_desc = h5py.File(self._data_file, "x")
         group = self._h5file_desc.create_group("/entry")
         self._dataset = group.create_dataset("averaged",
-                                             data=np.zeros((1, *self._frame_shape)),
+                                             data=np.full(fill_value=np.nan,
+                                                          shape=(1, *self._frame_shape)),
                                              maxshape=(None, *self._frame_shape),
+                                             chunks=(1, *self._frame_shape),
                                              dtype="float64",
                                              compression="lzf")
         self._counter = itertools.count()
@@ -142,6 +144,7 @@ class VideoStreamDet(Device):
 
     def unstage(self):
         super().unstage()
+        del self._dataset
         self._h5file_desc.close()
         self._resource_document = None
         self._datum_factory = None
