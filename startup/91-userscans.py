@@ -221,3 +221,15 @@ def scan_with_delay(dets, motor, start, stop, num_points, sleep=3.0):
         yield from bps.mv(motor, pos)
         yield from bps.sleep(sleep)
         yield from bpp.trigger_and_read(dets + [motor])
+
+
+def overnight_20220812(energies=[3000, 5000], num_points=13):
+    for en in energies:
+        yield from bps.mv(mono.energy, en)
+        yield from bps.sleep(3.0)
+        yield from bp.rel_grid_scan([vstream, I0, ring_current],
+                                    kbh.dsh, -0.1, 0.1, num_points,
+                                    kbh.ush, -0.1, 0.1, num_points,
+                                    kbv.dsh, -0.1, 0.1, num_points,
+                                    kbv.ush, -0.1, 0.1, num_points,
+                                    snake_axes=True)
