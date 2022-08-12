@@ -41,18 +41,9 @@ RE.install_suspender(sus_abs_hi)
 
 ############################
 
-ring_current = EpicsSignal('SR:OPS-BI{DCCT:1}I:Real-I')
 ring_suspender = SuspendFloor(ring_current, 50, resume_thresh=399, sleep=60)
 #                              post_plan=beamline_align_suspenders)
-
 # ring_current, 50, resume_thresh=399, sleep=60
-
-solenoid_v = EpicsSignal('XF:08BMES-BI{PSh:1-BPM:4}V-I')
-
-#I0 = EpicsSignal("XF:08BM-ES{IO:2}AI:1-I")
-I0 = EpicsSignal("XF:08BMES-BI{PSh:1-BPM:3}V-I")
-#H_feedback_top = EpicsSignal('XF:08BM-ES{IO:2}AI:2-I')
-#H_feedback_bottom = EpicsSignal('XF:08BM-ES{IO:2}AI:3-I')
 
 solenoid_v_suspenderCeil = SuspendCeil(solenoid_v, 0.3, resume_thresh = 0.05, sleep = 10,
                                        #post_plan = mono_tilt
