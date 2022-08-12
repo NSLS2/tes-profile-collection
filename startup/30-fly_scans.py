@@ -283,15 +283,7 @@ def xy_fly(
     yield from fly_body()
 
     # save the start document to a file for the benefit of the user
-    start = db[-1].start
-    dt = datetime.datetime.fromtimestamp(start["time"])
-    filepath = os.path.expanduser(
-        f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"
-        f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}.log"
-    )
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    with open(filepath, "wt") as output_file:
-        output_file.write(pprint.pformat(start))
+    export_xy_fly()
 
 
 

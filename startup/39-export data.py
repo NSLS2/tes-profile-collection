@@ -3,6 +3,26 @@ import pandas as pd
 import datetime
 import tifffile
 
+
+def export_xy_fly(scanID = -1):
+    start = db[scanID].start
+    dt = datetime.datetime.fromtimestamp(start["time"])
+    filepath = os.path.expanduser(
+        f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"
+        f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}.log"
+    )
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, "wt") as output_file:
+        output_file.write(pprint.pformat(start))
+    # Save to Lustre
+    filepath = os.path.expanduser(
+        f"/nsls2/data/tes/legacy/usersdata/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"
+        f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}.log"
+    )
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, "wt") as output_file:
+        output_file.write(pprint.pformat(start))
+
 def export_E_fly(scanID=-1):
     h = db[scanID]
     start = h.start
@@ -60,6 +80,18 @@ def export_E_fly(scanID=-1):
         df.to_csv(filepath, header=True, index=False, mode='a')
         print(f'Data exported to {filepath}')
 
+        filepath = os.path.expanduser(
+            f"/nsls2/data/tes/legacy/usersdata/Data/{start['operator']}/{dt.date().isoformat()}/E_fly/"
+            f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().strftime('%H-%M-%S')}-{ii}.dat")
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, "wt") as output_file:
+            output_file.write(pprint.pformat(file_head,width=100))
+            output_file.write('\n')
+            output_file.write('\n')
+            output_file.write('\n')
+
+        df.to_csv(filepath, header=True, index=False, mode='a')
+        print(f'Data exported to {filepath}')
 
 def export_E_step(scanID=-1, scan_iter=0):
 
@@ -83,10 +115,10 @@ def export_E_step(scanID=-1, scan_iter=0):
     If_1_roi2 = h.table()['xs_channel1_rois_roi02_value_sum']
     If_1_roi3 = h.table()['xs_channel1_rois_roi03_value_sum']
     If_1_roi4 = h.table()['xs_channel1_rois_roi04_value_sum']
-    If_2_roi1 = h.table()['xs_channel2_rois_roi01_value_sum']
-    If_2_roi2 = h.table()['xs_channel2_rois_roi02_value_sum']
-    If_2_roi3 = h.table()['xs_channel2_rois_roi03_value_sum']
-    If_2_roi4 = h.table()['xs_channel2_rois_roi04_value_sum']
+    #If_2_roi1 = h.table()['xs_channel2_rois_roi01_value_sum']
+    #If_2_roi2 = h.table()['xs_channel2_rois_roi02_value_sum']
+    #If_2_roi3 = h.table()['xs_channel2_rois_roi03_value_sum']
+    #If_2_roi4 = h.table()['xs_channel2_rois_roi04_value_sum']
 
     #df = pd.DataFrame({'#Energy': E, 'I0': I0, 'I_TEY':I_TEY,
     #                   'If_CH1_roi1': If_1_roi1, 'If_CH1_roi2': If_1_roi2, 'If_CH1_roi3':If_1_roi3, 'If_CH1_roi4': If_1_roi4,
@@ -112,6 +144,20 @@ def export_E_step(scanID=-1, scan_iter=0):
 
     filepath = os.path.expanduser(
         f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/E_step/"
+        f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().strftime('%H-%M-%S')}-{scan_iter}.cvs")
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    with open(filepath, "wt") as output_file:
+        output_file.write(pprint.pformat(file_head,width=100))
+        output_file.write('\n')
+        output_file.write('\n')
+        output_file.write('\n')
+
+    df.to_csv(filepath, header = True,index = False,mode='a')
+    print(f'Data exported to {filepath}')
+    # Save to Lustre
+    filepath = os.path.expanduser(
+        f"/nsls2/data/tes/legacy/usersdata/Data/{start['operator']}/{dt.date().isoformat()}/E_step/"
         f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().strftime('%H-%M-%S')}-{scan_iter}.cvs")
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
