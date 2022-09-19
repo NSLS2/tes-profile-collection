@@ -96,7 +96,8 @@ except ImportError:
 
 
 # runengine_metadata_dir = appdirs.user_data_dir(appname="bluesky") / Path("runengine-metadata")
-runengine_metadata_dir = Path('/nsls2/xf08bm/shared/config/runengine-metadata')
+# runengine_metadata_dir = Path('/nsls2/xf08bm/shared/config/runengine-metadata')
+runengine_metadata_dir = Path("/nsls2/data/tes/shared/config/runengine-metadata")
 
 # PersistentDict will create the directory if it does not exist
 RE.md = PersistentDict(runengine_metadata_dir)
