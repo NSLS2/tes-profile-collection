@@ -106,9 +106,11 @@ def xy_fly(
     ret = yield from bps.read(xy_fly_stage.y.mres)  # (in mm)
     ymres = ret[xy_fly_stage.y.mres.name]["value"] if ret is not None else 0.0002
 
+    # to reach 0.4um step size
     prescale = int(np.floor((xstep_size / (5 * xmres))))
-    a_xstep_size = prescale * (5 * xmres)
-
+    #prescale = int(np.floor((xstep_size / (2*xmres))))
+    a_xstep_size = prescale * (5*xmres)
+    #a_xstep_size = xstep_size;
     a_ystep_size = int(np.floor((ystep_size / (ymres)))) * ymres
 
     num_xpixels = int(np.floor((xstop - xstart) / a_xstep_size))
@@ -151,8 +153,9 @@ def xy_fly(
 
     # set up delta-tau trigger to fast motor
     for v in ["p1600=0", "p1607=1", "p1601=5", "p1602 = 2", "p1604 = 0", "p1600=1"]:
+    #for v in ["p1600=0", "p1607=1", "p1601=2", "p1602 = 1", "p1604 = 0", "p1600=1"]:
         yield from bps.mv(dtt, v)
-        yield from bps.sleep(0.1)
+        yield from bps.sleep(0.2)
 
 
 
@@ -204,7 +207,7 @@ def xy_fly(
         #  This part is not necessary to be here. revised by YDu
         for v in ["p1600=0", "p1600=1"]:
             yield from bps.mv(dtt, v)
-            yield from bps.sleep(0.1)
+            yield from bps.sleep(0.2)
 
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
         def fly_row():
@@ -234,20 +237,32 @@ def xy_fly(
 
 
             # arm the struck
+            import time
+      #      print(f"Starting row scan: {time.time()}")
 
             # maybe start the xspress3
             if xspress3 is not None:
                 yield from bps.trigger(xspress3, group=f"fly_row_{y}")
             yield from bps.trigger(sclr, group=f"fly_row_{y}")
             #  revised by YDu, use to be 1.5
+     #       print(f"After trigger: {time.time()}")
+
             yield from bps.sleep(1.5)            # fly the motor
             yield from bps.abs_set(
-                xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
+                 xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
+        #        xy_fly_stage.x, xstop + a_xstep_size, group = f"motor_{y}"
             )
+         #   yield from bps.wait(group=f"motor_{y}")
+         #   print(f"Motor finished: {time.time()}")
+
+            yield from bps.wait(group=f"fly_row_{y}")
+
             #yield from bps.mv(
             #    xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             #)
             yield from bps.wait(group=f"fly_row_{y}")
+
+          #  print(f"Finished row scan: {time.time()}")
 
             # yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
             yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
@@ -274,6 +289,8 @@ def xy_fly(
         #        #print(5 - abs(xstop - xstart)/5)
          #       time.sleep(5.3 - abs(xstop - xstart)/5)
 
+            print(f"Data is saved: {time.time()}")
+
         for y in range(num_ypixels):
             if xspress3 is not None:
                 yield from bps.mov(xspress3.fly_next, True)
@@ -281,7 +298,7 @@ def xy_fly(
             yield from fly_row()
 
     yield from fly_body()
-
+    yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
     # save the start document to a file for the benefit of the user
     export_xy_fly()
 

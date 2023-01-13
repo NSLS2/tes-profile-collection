@@ -175,6 +175,7 @@ class WebcamWithHDF5(StandardProsilica):
 
 
 # This camera is the default one (with the HDF5 plugin):
+'''
 cam6 = StandardProsilicaWithHDF5('XF:08BM-BI{Cam:6}', name='cam6')
 cam6.hdf5.write_path_template = "/nsls2/data/tes/legacy/detectors/cam6/hdf5/%Y/%m/%d/"
 cam6.cam.ensure_nonblocking()
@@ -244,7 +245,7 @@ warmup_hdf5_plugins([cam6, cam7])
 sd.baseline.extend([cam6.roi1.size, cam6.roi1.min_xyz,
                     cam6.roi2.size, cam6.roi2.min_xyz])
 
-
+'''
 import dask
 from area_detector_handlers.handlers import AreaDetectorHDF5Handler, H5PY_KEYERROR_IOERROR_MSG
 

@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 def nano_knife_edge(motor, start, stop, stepsize, acqtime,
                     normalize=True, use_trans=False,
                     scan_only=False, shutter=True, plot=True, plot_guess=False):
+    "Modified based on SRX-NSLSII code"
     """
     motor       motor   motor used for scan
     start       float   starting position
