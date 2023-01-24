@@ -19,7 +19,6 @@ from ophyd.areadetector.filestore_mixins import (FileStoreTIFFIterativeWrite,
 from ophyd.areadetector.plugins import (TIFFPlugin_V34 as TIFFPlugin,
                                         HDF5Plugin_V34 as HDF5Plugin)
 from ophyd import Component as Cpt, Signal
-from ophyd.utils import set_and_wait
 from pathlib import PurePath
 from bluesky.plan_stubs import stage, unstage, open_run, close_run, trigger_and_read, pause
 
@@ -83,7 +82,7 @@ class HDF5PluginWithFileStoreProsilica(HDF5PluginWithFileStoreBase):
 
             See /home/xf08bm/bluesky-files/log/bluesky/bluesky.log for the full traceback.
         """
-        set_and_wait(self.enable, 1)
+        self.enable.set(1).wait()
         sigs = OrderedDict([(self.parent.cam.array_callbacks, 1),
                             (self.parent.cam.image_mode, 'Single'),
                             (self.parent.cam.trigger_mode, 'Fixed Rate'),  # updated here "Internal" -> "Fixed Rate"
@@ -96,13 +95,13 @@ class HDF5PluginWithFileStoreProsilica(HDF5PluginWithFileStoreBase):
 
         for sig, val in sigs.items():
             ttime.sleep(0.1)  # abundance of caution
-            set_and_wait(sig, val)
+            sig.set(val).wait()
 
         ttime.sleep(2)  # wait for acquisition
 
         for sig, val in reversed(list(original_vals.items())):
             ttime.sleep(0.1)
-            set_and_wait(sig, val)
+            sig.set(val).wait()
 
     def get_frames_per_point(self):
         if not self.parent.is_flying:

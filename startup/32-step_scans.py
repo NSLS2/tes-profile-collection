@@ -123,7 +123,7 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
         #yield from bps.mv(mono.linear.velocity, 0.1)
 
 
-    for scan_iter in range(num_scans):
+    for scan_iter in range(int(num_scans)):
 
 
 

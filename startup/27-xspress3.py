@@ -28,7 +28,6 @@ from ophyd.areadetector.filestore_mixins import (
 from databroker.assets.handlers import HandlerBase
 from ophyd import Signal
 from ophyd import Component as C
-from hxntools.detectors.merlin import MerlinDetector
 import itertools
 from pathlib import PurePath
 from nslsii.detectors.xspress3 import (
@@ -38,9 +37,7 @@ from nslsii.detectors.xspress3 import (
     Xspress3FileStore,
     logger,
 )
-from ophyd.signal import set_and_wait
 from enum import Enum
-from ophyd.signal import set_and_wait
 from collections import OrderedDict
 from ophyd import Staged
 from ophyd.status import DeviceStatus
@@ -95,7 +92,7 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
         Also modified the stage sigs.
         """
         print("warming up the hdf5 plugin...")
-        set_and_wait(self.enable, 1)
+        self.enable.set(1).wait()
         sigs = OrderedDict(
             [
                 (self.parent.settings.array_callbacks, 1),
@@ -112,13 +109,13 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
 
         for sig, val in sigs.items():
             ttime.sleep(0.1)  # abundance of caution
-            set_and_wait(sig, val)
+            sig.set(val).wait()
 
         ttime.sleep(2)  # wait for acquisition
 
         for sig, val in reversed(list(original_vals.items())):
             ttime.sleep(0.1)
-            set_and_wait(sig, val)
+            sig.set(val).wait()
         print("done")
 
     def describe(self):
@@ -150,9 +147,9 @@ class TESXspressTrigger(XspressTrigger):
             for sn in self.read_attrs:
                 if sn.startswith("channel") and "." not in sn:
                     ch = getattr(self, sn)
-                    self.dispatch(ch.name, trigger_time)
+                    self.generate_datum(ch.name, trigger_time)
         elif self._mode is TESMode.fly:
-            self.dispatch("fluor", trigger_time)
+            self.generate_datum("fluor", trigger_time)
         else:
             raise Exception(f"unexpected mode {self._mode}")
         self._abs_trigger_count += 1
