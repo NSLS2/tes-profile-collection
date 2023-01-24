@@ -28,7 +28,6 @@ from ophyd.areadetector.filestore_mixins import (
 from databroker.assets.handlers import HandlerBase
 from ophyd import Signal
 from ophyd import Component as C
-# from hxntools.detectors.merlin import MerlinDetector
 import itertools
 from pathlib import PurePath
 from nslsii.detectors.xspress3 import (
