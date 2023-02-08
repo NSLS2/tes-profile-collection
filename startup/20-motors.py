@@ -42,12 +42,29 @@ class ToroidalMirror(Device):
     ush = Cpt(EpicsMotor, "YU}Mtr")  # Should move high to low
 
 
+
+
 toroidal_mirror = ToroidalMirror("XF:08BMA-OP{Mir:FM-Ax:", name="toroidal_mirror")
 toroidal_mirror.kind = "hinted"
 toroidal_mirror.dsy.kind = "hinted"
 toroidal_mirror.usy.kind = "hinted"
 toroidal_mirror.dsh.kind = "hinted"
 toroidal_mirror.ush.kind = "hinted"
+
+
+
+class SSA(Device):
+    inboard = Cpt(EpicsMotor, "I}Mtr")
+    outboard = Cpt(EpicsMotor, "O}Mtr")
+
+
+ssa = SSA("XF:08BMES-OP{SSA:1-Ax:", name="ssa")
+ssa.kind = "hinted"
+ssa.inboard.kind = "hinted"
+ssa.outboard.kind = "hinted"
+
+
+
 
 sd.baseline = [
     toroidal_mirror.dsy,

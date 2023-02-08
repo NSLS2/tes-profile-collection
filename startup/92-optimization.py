@@ -68,3 +68,20 @@ for k in range(len(motor_dict_keys)):
 #    - clean up prints and better output log
 #    - add metadata about the samples
 #    - plot trajectory
+
+# dofs = [kbv.ush, kbv.dsh]
+# dofs = [kbh.ush, kbh.dsh]
+
+# dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh]
+
+# rel_bounds = {"kbv_ush": [-1e-1, +1e-1], "kbv_dsh": [-1e-1, +1e-1], "kbh_ush": [-1e-1, +1e-1], "kbh_dsh": [-1e-1, +1e-1]}
+# fid_params = {"kbv_ush": -0.0500010, "kbv_dsh": -0.0500010, "kbh_ush": 2.2650053, "kbh_dsh": 3.3120017}
+# hard_bounds = np.r_[[fid_params[dof.name] + np.array(rel_bounds[dof.name]) for dof in dofs]].T
+
+
+dofs = [toroidal_mirror.ush, toroidal_mirror.dsh]
+dofs = [toroidal_mirror.usy, toroidal_mirror.dsy]
+
+rel_bounds = {"toroidal_mirror_ush": [-1e-1, +1e-1], "toroidal_mirror_dsh": [-1e-1, +1e-1], "toroidal_mirror_usy": [-1e-1, +1e-1], "toroidal_mirror_dsy": [-1e-1, +1e-1]}
+fid_params = {"toroidal_mirror_ush": -9.515, "toroidal_mirror_dsh": -3.92, "toroidal_mirror_usy": -6.237, "toroidal_mirror_dsy": -9.2625}
+hard_bounds = np.r_[[fid_params[dof.name] + np.array(rel_bounds[dof.name]) for dof in dofs]].T

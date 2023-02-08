@@ -4,6 +4,13 @@ EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)
 from nslsii import configure_base
 from IPython import get_ipython
 
+import sys
+import os
+
+sys.path.insert(0, os.path.expanduser('~/src/bloptools'))
+from bloptools import gp
+
+
 configure_base(get_ipython().user_ns,
                "tes",
                publish_documents_with_kafka=True)

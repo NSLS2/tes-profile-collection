@@ -56,7 +56,7 @@ I0_suspenderFloor = SuspendFloor(I0, 0.015, resume_thresh= 0.05, sleep = 2)
 RE.install_suspender(ring_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
-RE.install_suspender(I0_suspenderFloor)
+#RE.install_suspender(I0_suspenderFloor)
 
 #####################################
 
