@@ -70,7 +70,9 @@ sd.baseline = [
     toroidal_mirror.dsy,
     toroidal_mirror.usy,
     toroidal_mirror.dsh,
-    toroidal_mirror.ush
+    toroidal_mirror.ush,
+    ssa.inboard,
+    ssa.outboard,
 ]
 
 
