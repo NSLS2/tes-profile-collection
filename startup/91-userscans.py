@@ -211,3 +211,25 @@ RE(scan_with_random_walk(detectors=[vstream, I0, ring_current],
                          num_points=50000,
                          num_cycles=800))
 """
+
+
+@bpp.stage_decorator([vstream] + [mono.energy])
+@bpp.run_decorator()
+def scan_with_delay(dets, motor, start, stop, num_points, sleep=3.0):
+    positions = np.linspace(start, stop, num_points)
+    for pos in positions:
+        yield from bps.mv(motor, pos)
+        yield from bps.sleep(sleep)
+        yield from bpp.trigger_and_read(dets + [motor])
+
+
+def overnight_20220812(energies=[3000, 5000], num_points=13):
+    for en in energies:
+        yield from bps.mv(mono.energy, en)
+        yield from bps.sleep(3.0)
+        yield from bp.rel_grid_scan([vstream, I0, ring_current],
+                                    kbh.dsh, -0.1, 0.1, num_points,
+                                    kbh.ush, -0.1, 0.1, num_points,
+                                    kbv.dsh, -0.1, 0.1, num_points,
+                                    kbv.ush, -0.1, 0.1, num_points,
+                                    snake_axes=True)
