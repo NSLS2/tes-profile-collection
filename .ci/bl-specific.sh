@@ -9,7 +9,7 @@ sudo chown -Rv $USER: /nsls2/
 #
 #   https://github.com/NSLS-II/bloptools/pull/5
 #
-mkdir ~/src/ && src/
+mkdir ~/src/ && ~/src/
 git clone https://github.com/thomaswmorris/bloptools.git
 cd bloptools
 git checkout gp-opt
