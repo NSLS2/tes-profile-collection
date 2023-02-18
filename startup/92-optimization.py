@@ -1,7 +1,12 @@
 # import matplotlib.pyplot as plt
 
-# from bloptools.de_opt_utils import run_hardware_fly
-# from bloptools.de_optimization import optimization_plan
+try:
+    from bloptools.de_opt_utils import run_hardware_fly
+    from bloptools.de_optimization import optimization_plan
+except (ImportError, ModuleNotFoundError):
+    # The modules were moved to the `de` package in https://github.com/NSLS-II/bloptools/pull/5.
+    from bloptools.de.de_opt_utils import run_hardware_fly
+    from bloptools.de.de_optimization import optimization_plan
 
 motor_dict = {sample_stage.x.name: {'position': sample_stage.x},
               sample_stage.y.name: {'position': sample_stage.y},
