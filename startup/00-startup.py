@@ -7,7 +7,8 @@ from IPython import get_ipython
 import sys
 import os
 
-sys.path.insert(0, os.path.expanduser('~/src/bloptools'))
+# Addressed following https://www.nsls2.bnl.gov/docs/how-to/hot-fix-envs.html.
+# sys.path.insert(0, os.path.expanduser('~/src/bloptools'))
 from bloptools import gp
 
 

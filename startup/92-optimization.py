@@ -78,10 +78,12 @@ for k in range(len(motor_dict_keys)):
 # #dofs = [kbh.ush, kbh.dsh]
 dofs = [toroidal_mirror.ush, toroidal_mirror.dsh]
 dofs = [toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh]
-dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh]
+dofs = np.array([kbv.ush, kbv.dsh, kbh.ush, kbh.dsh])
 
 #dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh, toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh]
 
 rel_bounds = {"kbv_ush": [-1e-1, +1e-1], "kbv_dsh": [-1e-1, +1e-1], "kbh_ush": [-1e-1, +1e-1], "kbh_dsh": [-1e-1, +1e-1], "toroidal_mirror_ush": [-1e-1, +1e-1], "toroidal_mirror_dsh": [-1e-1, +1e-1], "toroidal_mirror_usy": [-1e-1, +1e-1], "toroidal_mirror_dsy": [-1e-1, +1e-1]}
 fid_params = {"kbv_ush": -0.0500010, "kbv_dsh": -0.0500010, "kbh_ush": 2.2650053, "kbh_dsh": 3.3120017, "toroidal_mirror_ush": -9.515, "toroidal_mirror_dsh": -3.92, "toroidal_mirror_usy": -6.284, "toroidal_mirror_dsy": -9.2575}
-hard_bounds = np.r_[[fid_params[dof.name] + np.array(rel_bounds[dof.name]) for dof in dofs]].T
+hard_bounds = np.r_[[fid_params[dof.name] + 2 * np.array(rel_bounds[dof.name]) for dof in dofs]]
+
+# gpo = gp.Optimizer(init_scheme='quasi-random', n_init=4, run_engine=RE, db=db, shutter=psh, detector=vstream, detector_type='image', dofs=dofs, dof_bounds=hard_bounds, fitness_model='max_sep_density', training_iter=256, verbose=True)
