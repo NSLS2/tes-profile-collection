@@ -12,8 +12,4 @@ sudo chown -Rv $USER: /nsls2/
 #
 #   https://github.com/NSLS-II/bloptools/pull/5
 #
-mkdir -v $HOME/src/
-cd $HOME/src/
-git clone https://github.com/thomaswmorris/bloptools.git
-cd bloptools
-git checkout gp-opt
+pip install -v git+https://github.com/thomaswmorris/bloptools.git@gp-opt
