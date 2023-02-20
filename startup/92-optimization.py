@@ -1,7 +1,7 @@
 # import matplotlib.pyplot as plt
 
-from bloptools.de_opt_utils import run_hardware_fly
-from bloptools.de_optimization import optimization_plan
+# from bloptools.de_opt_utils import run_hardware_fly
+# from bloptools.de_optimization import optimization_plan
 
 motor_dict = {sample_stage.x.name: {'position': sample_stage.x},
               sample_stage.y.name: {'position': sample_stage.y},
