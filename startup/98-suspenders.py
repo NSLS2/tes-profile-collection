@@ -56,8 +56,15 @@ I0_suspenderFloor = SuspendFloor(I0, 0.015, resume_thresh= 0.05, sleep = 2)
 RE.install_suspender(ring_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
-if not os.environ['AUTOALIGNMENT']:
-	RE.install_suspender(I0_suspenderFloor)
+if not os.getenv('AUTOALIGNMENT', "no").lower() in ["yes", "y", "true", "1"]:
+    print("Installing I0_suspenderFloor...")
+    RE.install_suspender(I0_suspenderFloor)
+else:
+    print("Not installing I0_suspenderFloor.")
+
+print("\nRE.suspenders:")
+for s in RE.suspenders:
+    print(f"  - {s}")
 
 #####################################
 
