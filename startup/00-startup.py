@@ -7,11 +7,6 @@ from IPython import get_ipython
 import sys
 import os
 
-# Addressed following https://www.nsls2.bnl.gov/docs/how-to/hot-fix-envs.html.
-# sys.path.insert(0, os.path.expanduser('~/src/bloptools'))
-from bloptools import gp
-
-
 configure_base(get_ipython().user_ns,
                "tes",
                publish_documents_with_kafka=True)
@@ -134,3 +129,18 @@ def warmup_hdf5_plugins(detectors):
             print(f"  Warming up HDF5 plugin for {det.name} is done. array_size={det.hdf5.array_size.get()}\n")
         else:
             print(f"\n  Warming up of the HDF5 plugin is not needed for {det.name} as the array_size={_array_size}.")
+
+
+def auto_alignment_mode(envvar="AUTOALIGNMENT", default="no"):
+    """Enable auto-alignment mode.
+
+    In that mode the `bloptools` library will be imported and some suspenders will be disabled.
+
+    Returns
+    -------
+        True if the auto-alignment mode is enabled, False otherwise.
+    """
+    if os.getenv(envvar, default).lower() in ["yes", "y", "true", "1"]:
+        return True
+    else:
+        return False
