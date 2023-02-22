@@ -51,7 +51,7 @@ def warmup_hdf5_plugins(detectors):
 def auto_alignment_mode(envvar="AUTOALIGNMENT", default="no"):
     """Enable auto-alignment mode.
 
-    In that mode the `bloptools` library will be imported and some suspenders will be disabled.
+    In that mode, the `bloptools` library will be imported and some suspenders will be disabled.
 
     Returns
     -------

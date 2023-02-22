@@ -1,3 +1,4 @@
+import os
 import sys
 import textwrap
 import traceback
@@ -6,9 +7,28 @@ from tabulate import tabulate
 
 
 def _extract_tb():
+    """Auxiliary function to provide a pretty-printed traceback of the exceptions.
+
+    This is useful when used in the try..except blocks so that the printed
+    exception traceback can be easily distinguished from the actual exceptions.
+
+    Example:
+    --------
+    ╭──────────────────────────────────────────────────────────────────────────────────────────────────────╮
+    │ Traceback                                                                                            │
+    ├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+    │ File ".../.ipython/profile_collection_tes/startup/92-optimization.py", line 43, in <module>     from │
+    │ bloptools.de_opt_utils import run_hardware_fly                                                       │
+    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
+        ╭──────────────────────────────────────────╮
+        │ Exception                                │
+        ├──────────────────────────────────────────┤
+        │ No module named 'bloptools.de_opt_utils' │
+        ╰──────────────────────────────────────────╯
+
+    """
     shared_kwargs = {"tablefmt": "rounded_grid"}
     traceback_kwargs = {**shared_kwargs}
-    maxcolwidths = {}
     two_borders = 2 * 2
     indent = 4
 
@@ -37,7 +57,13 @@ def _extract_tb():
     )
 
 
-if auto_alignment_mode():
+if auto_alignment_mode():  # defined in 00-startup.py
+    # Enable the auto-alignment mode.
+    # In this mode, the KB-mirror motors an optionally, toroidal mirror motors
+    # will be moved. For that to work, the I0 suspender will have to be disabled
+    # to avoid the interference with the mono feedback system
+    # (https://github.com/NSLS-II-TES/tes-horizontal-feedback).
+
     try:
         # Imports for bloptools < v0.0.2.
         from bloptools.de_opt_utils import run_hardware_fly
@@ -60,17 +86,17 @@ if auto_alignment_mode():
     #                            DE optimization                              #
     ###########################################################################
 
-    motor_dict = {
-        sample_stage.x.name: {"position": sample_stage.x},
-        sample_stage.y.name: {"position": sample_stage.y},
-        # sample_stage.z.name: {'position': sample_stage.z},
-    }
+    # motor_dict = {
+    #     sample_stage.x.name: {"position": sample_stage.x},
+    #     sample_stage.y.name: {"position": sample_stage.y},
+    #     # sample_stage.z.name: {'position': sample_stage.z},
+    # }
 
-    bound_vals = [(43, 44), (34, 35)]
-    motor_bounds = {}
-    motor_dict_keys = list(motor_dict.keys())
-    for k in range(len(motor_dict_keys)):
-        motor_bounds[motor_dict_keys[k]] = {"position": [bound_vals[k][0], bound_vals[k][1]]}
+    # bound_vals = [(43, 44), (34, 35)]
+    # motor_bounds = {}
+    # motor_dict_keys = list(motor_dict.keys())
+    # for k in range(len(motor_dict_keys)):
+    #     motor_bounds[motor_dict_keys[k]] = {"position": [bound_vals[k][0], bound_vals[k][1]]}
 
     # instantiate plt.figure() before running optimization_plan
     # import matplotlib.pyplot as plt
