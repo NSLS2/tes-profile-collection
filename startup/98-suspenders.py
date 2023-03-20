@@ -35,10 +35,6 @@ RE.install_suspender(sus_abs_hi)
 
 '''
 
-
-
-
-
 ############################
 
 ring_suspender = SuspendFloor(ring_current, 50, resume_thresh=399, sleep=60)
@@ -56,21 +52,18 @@ I0_suspenderFloor = SuspendFloor(I0, 0.015, resume_thresh= 0.05, sleep = 2)
 RE.install_suspender(ring_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
-RE.install_suspender(I0_suspenderFloor)
+
+if not auto_alignment_mode():
+    print("Installing I0_suspenderFloor...")
+    RE.install_suspender(I0_suspenderFloor)
+else:
+    print("Not installing I0_suspenderFloor.")
+
+print("\nRE.suspenders:")
+for s in RE.suspenders:
+    print(f"  - {s}")
 
 #####################################
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 '''
@@ -84,13 +77,10 @@ def mono_tilt():
         yield from bps.sleep(1)
         if H_feedback_top.value - H_Top >=0 or abs(solenoid_v.value) - abs(sole_v) <=0:
             direction = 1
-            
-   
-   
-        
+
 '''
 '''
-        
+
         if solenoid_v.value >= 0.3 && solenoid_v.value <=0.33:
             bps.mv(mono.tilt, mono.tilt.position+5)
             yield from bps.sleep(1)

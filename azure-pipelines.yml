@@ -7,15 +7,15 @@ resources:
       endpoint: github
 
 jobs:
-  - template: 2022-2.4-py38.yml@templates
+  - template: 2023-1.2-py39.yml@templates
     parameters:
       beamline_acronym: TES
-  - template: 2022-2.4-py39.yml@templates
+  - template: 2023-1.2-py310.yml@templates
     parameters:
       beamline_acronym: TES
-  - template: 2022-2.4-py38-tiled.yml@templates
+  - template: 2023-1.2-py39-tiled.yml@templates
     parameters:
       beamline_acronym: TES
-  - template: 2022-2.4-py39-tiled.yml@templates
+  - template: 2023-1.2-py310-tiled.yml@templates
     parameters:
       beamline_acronym: TES

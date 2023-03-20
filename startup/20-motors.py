@@ -49,11 +49,25 @@ toroidal_mirror.usy.kind = "hinted"
 toroidal_mirror.dsh.kind = "hinted"
 toroidal_mirror.ush.kind = "hinted"
 
+
+class SSA(Device):
+    inboard = Cpt(EpicsMotor, "I}Mtr")
+    outboard = Cpt(EpicsMotor, "O}Mtr")
+
+
+ssa = SSA("XF:08BMES-OP{SSA:1-Ax:", name="ssa")
+ssa.kind = "hinted"
+ssa.inboard.kind = "hinted"
+ssa.outboard.kind = "hinted"
+
+
 sd.baseline = [
     toroidal_mirror.dsy,
     toroidal_mirror.usy,
     toroidal_mirror.dsh,
-    toroidal_mirror.ush
+    toroidal_mirror.ush,
+    ssa.inboard,
+    ssa.outboard,
 ]
 
 
