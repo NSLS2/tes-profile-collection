@@ -247,7 +247,7 @@ def xy_fly(
             #  revised by YDu, use to be 1.5
      #       print(f"After trigger: {time.time()}")
 
-            yield from bps.sleep(1.5)            # fly the motor
+            yield from bps.sleep(2)            # fly the motor
             yield from bps.abs_set(
                  xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
         #        xy_fly_stage.x, xstop + a_xstep_size, group = f"motor_{y}"
@@ -267,7 +267,7 @@ def xy_fly(
             # yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
             yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
             #  revised by YDu, use to be 0.1
-            yield from bps.sleep(0.)
+            yield from bps.sleep(0.1)
             # read and save the struckhi
             yield from bps.create(name="primary")
             #
@@ -282,9 +282,9 @@ def xy_fly(
             if xspress3 is not None:
                 yield from bps.read(xspress3)
             #  rvised by YDu, use to be 0.2e
-            yield from bps.sleep(0.)
+            yield from bps.sleep(0.2)
             yield from bps.save()
-            yield from bps.sleep(0.)
+            yield from bps.sleep(0.2)
        #     if 5 - abs(xstop - xstart)/5 > 0:
         #        #print(5 - abs(xstop - xstart)/5)
          #       time.sleep(5.3 - abs(xstop - xstart)/5)

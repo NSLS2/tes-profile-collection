@@ -233,10 +233,13 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
         return ret
 
     def stage(self):
+        print("starting stage")
         # do the latching
         if self.fly_next.get():
+            print("put False to fly_next")
             self.fly_next.put(False)
             self._mode = TESMode.fly
+        print("stage the parent")
         return super().stage()
 
     def unstage(self):
