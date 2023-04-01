@@ -122,7 +122,11 @@ if auto_alignment_mode():  # defined in 00-startup.py
         toroidal_mirror.ush,
         toroidal_mirror.dsh,
     ]
-    dofs = np.array([kbv.ush, kbv.dsh, kbh.ush, kbh.dsh])
+    kb_dofs = np.array([kbv.ush, kbv.dsh, kbh.ush, kbh.dsh])
+
+    ssa_dofs = np.array([ssa.inboard, ssa.outboard])
+
+    toroid_dofs = np.array([toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh])
     # dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh, toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh]
 
     rel_bounds = {
@@ -130,21 +134,30 @@ if auto_alignment_mode():  # defined in 00-startup.py
         "kbv_dsh": [-1e-1, +1e-1],
         "kbh_ush": [-1e-1, +1e-1],
         "kbh_dsh": [-1e-1, +1e-1],
+        "ssa_inboard": [-1e-1, +1e-1],
+        "ssa_outboard": [-1e-1, +1e-1],
         "toroidal_mirror_ush": [-1e-1, +1e-1],
         "toroidal_mirror_dsh": [-1e-1, +1e-1],
         "toroidal_mirror_usy": [-1e-1, +1e-1],
         "toroidal_mirror_dsy": [-1e-1, +1e-1],
     }
     fid_params = {
-        "kbv_ush": -0.0500010,
-        "kbv_dsh": -0.0500010,
-        "kbh_ush": 2.2650053,
-        "kbh_dsh": 3.3120017,
-        "toroidal_mirror_ush": -9.515,
-        "toroidal_mirror_dsh": -3.92,
-        "toroidal_mirror_usy": -6.284,
-        "toroidal_mirror_dsy": -9.2575,
+        "kbv_ush": 0.050,
+        "kbv_dsh": 0.030,
+        "kbh_ush": 2.485,
+        "kbh_dsh": 3.532,
+        "ssa_inboard": -0.3700,
+        "ssa_outboard": -0.1705,
+        "toroidal_mirror_ush": -9.530,
+        "toroidal_mirror_dsh": -3.900,
+        "toroidal_mirror_usy": -6.280,
+        "toroidal_mirror_dsy": -9.160,
     }
-    hard_bounds = np.r_[[fid_params[dof.name] + 2 * np.array(rel_bounds[dof.name]) for dof in dofs]]
+    # hard_bounds = np.r_[[fid_params[dof.name] + 2 * np.array(rel_bounds[dof.name]) for dof in dofs]]
 
     # gpo = gp.Optimizer(init_scheme='quasi-random', n_init=4, run_engine=RE, db=db, shutter=psh, detector=vstream, detector_type='image', dofs=dofs, dof_bounds=hard_bounds, fitness_model='max_sep_density', training_iter=256, verbose=True)
+
+    dofs = kb_dofs[:2]
+    hard_bounds = np.r_[[fid_params[dof.name] + 1 * np.array(rel_bounds[dof.name]) for dof in dofs]]
+
+    from bloptools import gp
