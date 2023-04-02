@@ -130,16 +130,16 @@ if auto_alignment_mode():  # defined in 00-startup.py
     # dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh, toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh]
 
     rel_bounds = {
-        "kbv_ush": [-1e-1, +1e-1],
-        "kbv_dsh": [-1e-1, +1e-1],
-        "kbh_ush": [-1e-1, +1e-1],
-        "kbh_dsh": [-1e-1, +1e-1],
+        "kbv_ush": [-5e-2, +5e-2],
+        "kbv_dsh": [-5e-2, +5e-2],
+        "kbh_ush": [-5e-2, +5e-2],
+        "kbh_dsh": [-5e-2, +5e-2],
         "ssa_inboard": [-1e-1, +1e-1],
         "ssa_outboard": [-1e-1, +1e-1],
-        "toroidal_mirror_ush": [-1e-1, +1e-1],
-        "toroidal_mirror_dsh": [-1e-1, +1e-1],
-        "toroidal_mirror_usy": [-1e-1, +1e-1],
-        "toroidal_mirror_dsy": [-1e-1, +1e-1],
+        "toroidal_mirror_ush": [-1e-2, +1e-2],
+        "toroidal_mirror_dsh": [-1e-2, +1e-2],
+        "toroidal_mirror_usy": [-1e-2, +1e-2],
+        "toroidal_mirror_dsy": [-1e-2, +1e-2],
     }
     fid_params = {
         "kbv_ush": 0.050,
