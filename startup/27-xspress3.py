@@ -284,3 +284,38 @@ xs.energy_calibration.kind = "config"
 
 # Warm-up the hdf5 plugins:
 warmup_hdf5_plugins([xs])
+
+
+from ophyd import Component
+from ophyd.areadetector import Xspress3Detector
+from nslsii.areadetector.xspress3 import (
+    build_xspress3_class,
+    Xspress3HDF5Plugin,
+    Xspress3Trigger
+)
+
+xspress3_class = build_xspress3_class(
+    channel_numbers=(1, 2),
+    mcaroi_numbers=(1, 2, 3, 4),
+    image_data_key="fluor",
+    xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
+    extra_class_members={
+        "hdf5plugin": Component(
+            Xspress3HDF5Plugin,
+            "HDF1:",
+            name="h5p",
+            root_path="/nsls2/data/tes/legacy/raw",
+            path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d",
+            resource_kwargs={}
+        )
+    }
+)
+
+xs3 = xspress3_class(prefix="XF:08BM-ES{Xsp:2}:", name="xs3")
+
+for channel in xs3.iterate_channels():
+    channel.kind = "normal"
+    for mcaroi in channel.iterate_mcarois():
+        # "normal" may be ok as well
+        mcaroi.kind = "hinted"
+        mcaroi.total_rbv.kind = "hinted"
