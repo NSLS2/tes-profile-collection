@@ -168,7 +168,7 @@ def xy_fly(
         yield from bps.mv(xs.external_trig, True)
         yield from bps.mv(xspress3.total_points, num_xpixels)
         yield from bps.mv(xspress3.hdf5.num_capture, num_xpixels)
-        yield from bps.mv(xspress3.settings.num_images, num_xpixels)
+        yield from bps.mv(xspress3.cam.num_images, num_xpixels)
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     #@bpp.subs_decorator({"all": [roi_livegrid]})
@@ -198,8 +198,6 @@ def xy_fly(
             },
         }
     )
-
-
     def fly_body():
 
         yield from bps.mv(xy_fly_stage.x, xstart, xy_fly_stage.y, ystart)

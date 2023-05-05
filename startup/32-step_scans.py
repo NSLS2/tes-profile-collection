@@ -50,7 +50,7 @@ def _get_v_with_dflt(sig, dflt):
 
 
 #@bpp.baseline_decorator([mono, xy_stage])
-def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step_size, num_scans, xspress3=None):
+def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step_size, num_scans, xspress3):
 #def E_Step_Scan(dwell_time,*, scan_title = "abc",E_sections = [2700, 2800, 2900, 3200], step_size = [4, 1, 2], num_scans=2, element = 's'):
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
@@ -80,9 +80,10 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
         ept = np.append(ept, np.linspace(E_sections[ii], E_sections[ii+1], int((E_sections[ii+1] - E_sections[ii])/step_size[ii])+1))
 #        print(ept)
     sclr.set_mode("counting")
-    yield from bps.mv(xs.external_trig, False) # xs triger mode false means internal trigger
+    yield from bps.mv(xspress3.external_trig, False) # xs triger mode false means internal trigger
+    yield from bps.mv(xspress3.cam.num_images, 1)
     yield from bps.mv(sclr.cnts.preset_time, dwell_time,
-                      xs.settings.acquire_time, dwell_time)#setting dwell time
+                      xspress3.cam.acquire_time, dwell_time)#setting dwell time
     ept_linear =  _energy_to_linear(ept)
     #yield from bps.mv(sclr.set_mode,"counting")
     yield from bps.mv(mono.linear.velocity, 0.2)
@@ -99,7 +100,7 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
 
         yield from bps.checkpoint()
         return (yield from list_scan(
-            [sclr, xs],
+            [sclr, xspress3],
             mono.linear,
             ept_linear,
             md={

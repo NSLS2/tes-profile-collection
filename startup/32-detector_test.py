@@ -27,6 +27,7 @@ def detector_test(operator, scan_title, start_dwell_time, num_scans):
         yield from scan_once(dwell_time)
         h = db[-1]
         I0 = h.table()['I0']
-        If = h.table()['xs_channel1_rois_roi01_value_sum']
+        # If = h.table()['xs_channel1_rois_roi01_value_sum']
+        If = h.table()['xs3_channel01_mcaroi01_total_rbv']
         df = pd.DataFrame({'#I0': I0, 'If': If})
         df.to_csv('/home/xf08bm/Users/TEMP/test/' + f'{operator}-{scan_title}-{scan_iter}.csv')

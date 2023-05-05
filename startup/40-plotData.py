@@ -22,7 +22,8 @@ def pltxas(scanID = -1, mode = 'TEY'):
         E = h.table()['mono_energy']
         I0 = h.table()['I0']
         I_TEY = h.table()['fbratio']
-        If = h.table()['xs_channel1_rois_roi01_value_sum']
+        # If = h.table()['xs_channel1_rois_roi01_value_sum']
+        If = h.table()['xs3_channel01_mcaroi01_total_rbv']
     print(E)
     print(If)
     if mode == 'fluo':

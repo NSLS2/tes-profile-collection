@@ -250,15 +250,15 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
         return ret
 
 #revised for ch1&2 xs 3/8/21
-xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
-xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
-#xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
-xs.hdf5.num_extra_dims.put(0)
-xs.channel1.vis_enabled.put(1)
-#xs.channel2.vis_enabled.put(1)
-xs.settings.num_channels.put(1)
+_xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
+_xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+#_xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+_xs.hdf5.num_extra_dims.put(0)
+_xs.channel1.vis_enabled.put(1)
+#_xs.channel2.vis_enabled.put(1)
+_xs.settings.num_channels.put(1)
 
-xs.settings.configuration_attrs = [
+_xs.settings.configuration_attrs = [
     "acquire_period",
     "acquire_time",
     "gain",
@@ -280,10 +280,10 @@ xs.settings.configuration_attrs = [
     "run_flags",
     "trigger_signal",
 ]
-xs.energy_calibration.kind = "config"
+_xs.energy_calibration.kind = "config"
 
 # Warm-up the hdf5 plugins:
-warmup_hdf5_plugins([xs])
+warmup_hdf5_plugins([_xs])
 
 
 from ophyd import Component
@@ -295,12 +295,12 @@ from nslsii.areadetector.xspress3 import (
 )
 
 xspress3_class = build_xspress3_class(
-    channel_numbers=(1, 2),
+    channel_numbers=(1, ),
     mcaroi_numbers=(1, 2, 3, 4),
     image_data_key="fluor",
     xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
     extra_class_members={
-        "hdf5plugin": Component(
+        "hdf5": Component(
             Xspress3HDF5Plugin,
             "HDF1:",
             name="h5p",
@@ -311,11 +311,113 @@ xspress3_class = build_xspress3_class(
     }
 )
 
-xs3 = xspress3_class(prefix="XF:08BM-ES{Xsp:2}:", name="xs3")
+class TESXspress3Detector(xspress3_class):
+    # this is used as a latch to put the xspress3 into 'bulk' mode
+    # for fly scanning.  Do this is a signal (rather than as a local variable
+    # or as a method) so we can modify this as part of a plan
+    fly_next = Component(Signal, value=False)
 
-for channel in xs3.iterate_channels():
+    # must set kind on instance
+    energy_calibration = Component(Signal, value=10.0, kind="config")
+
+    def __init__(self, prefix, *, configuration_attrs=None, read_attrs=None, **kwargs):
+        if configuration_attrs is None:
+            configuration_attrs = [
+                "external_trig",
+                "total_points",
+                "spectra_per_point",
+                # "settings", does not exist on community IOC, replace with "cam"
+                "cam",
+                "rewindable",
+            ]
+        if read_attrs is None:
+            read_attrs = ["channel01", "hdf5"]
+        super().__init__(
+            prefix,
+            configuration_attrs=configuration_attrs,
+            read_attrs=read_attrs,
+            **kwargs,
+        )
+        # this is possiblely one too many places to store this
+        # in the parent class it looks at if the extrenal_trig signal is high
+        self._mode = TESMode.step
+
+        self.stage_sigs.update(
+            {
+                #self.cam.trigger_mode: "Software"  # 3 is TTL Veto Only
+            }
+        )
+
+    def stop(self, *, success=False):
+        stop_result = super().stop()
+        self.cam.acquire.put(0)
+        self.hdf5.stop(success=success)
+        return stop_result
+
+    def stage(self):
+        print("starting stage")
+        # do the latching
+        if self.fly_next.get():
+            print("put False to fly_next")
+            self.fly_next.put(False)
+            self._mode = TESMode.fly
+
+        if self.external_trig.get():
+            self.stage_sigs = {
+                self.cam.trigger_mode: "TTL Veto Only"
+            }
+        else:
+            self.stage_sigs = {
+                self.cam.trigger_mode: "Internal"
+            }
+
+        print("stage the parent")
+        return super().stage()
+
+    def unstage(self):
+        try:
+            unstage_result = super().unstage()
+        finally:
+            self._mode = TESMode.step
+        return unstage_result
+
+
+xs = TESXspress3Detector(prefix="XF:08BM-ES{Xsp:2}:", name="xs")
+
+xs.energy_calibration.kind = "config"
+
+for channel in xs.iterate_channels():
     channel.kind = "normal"
     for mcaroi in channel.iterate_mcarois():
         # "normal" may be ok as well
         mcaroi.kind = "hinted"
         mcaroi.total_rbv.kind = "hinted"
+
+
+# is this necessary?
+# xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+# xs.hdf5.num_extra_dims.put(0)
+# xs.channel1.vis_enabled.put(1)
+# xs.cam.num_channels.put(1)
+
+xs.cam.configuration_attrs = [
+    "acquire_period",
+    "acquire_time",
+    "image_mode",
+    "manufacturer",
+    "model",
+    "num_exposures",
+    "num_images",
+    "temperature",
+    "temperature_actual",
+    "trigger_mode",
+    "config_path",
+    "config_save_path",
+    "invert_f0",
+    "invert_veto",
+    "xsp_name",
+    "num_channels",
+    "num_frames_config",
+    "run_flags",
+    "trigger_signal",
+]
