@@ -137,8 +137,7 @@ def Batch_E_step(index=None, xspress3=None):
                                dwell_time=dwell_time,
                                E_sections=E_sections,
                                step_size=Step_size,
-                               num_scans=num_scans,
-                               xspress3=xspress3)
+                               num_scans=num_scans)
 
 def Batch_XANES_mapping(index=None):
 

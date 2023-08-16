@@ -165,9 +165,16 @@ def xy_fly(
     yield from bps.mv(sclr.mcas.prescale, prescale)
     yield from bps.mv(sclr.mcas.nuse, num_xpixels)
     if xspress3 is not None:
-        yield from bps.mv(xs.external_trig, True)
+        # jlynch:
+        # could use hdf5.num_capture in generate_datum() to set
+        # the first dimension?
+        # need to set the second dimension to the total number
+        # of channels on the Xspress3 Mini
+        # TODO: why are num_xpixels+1 being acquired? should be num_xpixels
+        xspress3.fluor.shape = (num_xpixels, 2, 4096)
+        xspress3.fluor.dims = ("num_xpixels", "channels", "bin_count")
+        yield from bps.mv(xspress3.external_trig, True)
         yield from bps.mv(xspress3.total_points, num_xpixels)
-        yield from bps.mv(xspress3.hdf5.num_capture, num_xpixels)
         yield from bps.mv(xspress3.cam.num_images, num_xpixels)
 
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
@@ -186,6 +193,7 @@ def xy_fly(
                 "xstop": xstop,
                 "xstep_size": xstep_size,
                 "ystart": ystart,
+                "ystop": ystop,
                 "ystep_size": ystep_size,
             },
             "derived_input": {
@@ -239,8 +247,15 @@ def xy_fly(
       #      print(f"Starting row scan: {time.time()}")
 
             # maybe start the xspress3
-            if xspress3 is not None:
-                yield from bps.trigger(xspress3, group=f"fly_row_{y}")
+            #print("wait to trigger xspress3...")
+            #yield from bps.sleep(3)
+            #if xspress3 is not None:
+                #print("triggering xspress3")
+            yield from bps.trigger(xspress3, group=f"fly_row_{y}")
+                # bps.mv(xspress3.hdf5.capture, 0)
+                # bps.mv(xspress3.hdf5.capture, 1)
+            #print("wait after triggering xspress3...")
+            #yield from bps.sleep(3)
             yield from bps.trigger(sclr, group=f"fly_row_{y}")
             #  revised by YDu, use to be 1.5
      #       print(f"After trigger: {time.time()}")
@@ -258,7 +273,7 @@ def xy_fly(
             #yield from bps.mv(
             #    xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
             #)
-            yield from bps.wait(group=f"fly_row_{y}")
+            #yield from bps.wait(group=f"fly_row_{y}")
 
           #  print(f"Finished row scan: {time.time()}")
 

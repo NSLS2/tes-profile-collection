@@ -26,9 +26,8 @@ from ophyd.areadetector.filestore_mixins import (
     FileStoreBase,
 )
 from databroker.assets.handlers import HandlerBase
-from ophyd import Signal
+from ophyd import Kind, Signal
 from ophyd import Component as C
-import itertools
 from pathlib import PurePath
 from nslsii.detectors.xspress3 import (
     XspressTrigger,
@@ -250,40 +249,40 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
         return ret
 
 #revised for ch1&2 xs 3/8/21
-_xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
-_xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
-#_xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
-_xs.hdf5.num_extra_dims.put(0)
-_xs.channel1.vis_enabled.put(1)
-#_xs.channel2.vis_enabled.put(1)
-_xs.settings.num_channels.put(1)
+# _xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
+# _xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+# #_xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
+# _xs.hdf5.num_extra_dims.put(0)
+# _xs.channel1.vis_enabled.put(1)
+# #_xs.channel2.vis_enabled.put(1)
+# _xs.settings.num_channels.put(1)
 
-_xs.settings.configuration_attrs = [
-    "acquire_period",
-    "acquire_time",
-    "gain",
-    "image_mode",
-    "manufacturer",
-    "model",
-    "num_exposures",
-    "num_images",
-    "temperature",
-    "temperature_actual",
-    "trigger_mode",
-    "config_path",
-    "config_save_path",
-    "invert_f0",
-    "invert_veto",
-    "xsp_name",
-    "num_channels",
-    "num_frames_config",
-    "run_flags",
-    "trigger_signal",
-]
-_xs.energy_calibration.kind = "config"
+# _xs.settings.configuration_attrs = [
+#     "acquire_period",
+#     "acquire_time",
+#     "gain",
+#     "image_mode",
+#     "manufacturer",
+#     "model",
+#     "num_exposures",
+#     "num_images",
+#     "temperature",
+#     "temperature_actual",
+#     "trigger_mode",
+#     "config_path",
+#     "config_save_path",
+#     "invert_f0",
+#     "invert_veto",
+#     "xsp_name",
+#     "num_channels",
+#     "num_frames_config",
+#     "run_flags",
+#     "trigger_signal",
+# ]
+# _xs.energy_calibration.kind = "config"
 
-# Warm-up the hdf5 plugins:
-warmup_hdf5_plugins([_xs])
+# # Warm-up the hdf5 plugins:
+# warmup_hdf5_plugins([_xs])
 
 
 from ophyd import Component
@@ -294,8 +293,23 @@ from nslsii.areadetector.xspress3 import (
     Xspress3Trigger
 )
 
-xspress3_class = build_xspress3_class(
-    channel_numbers=(1, ),
+
+# jlynch: debugging
+# class NewXspress3Trigger(Xspress3Trigger):
+#     def trigger(self):
+        
+#         self.cam.acquire.put(0, wait=True)
+#         return super().trigger()
+
+# The Xspress3 Mini at TES has 2 channels but 
+# as of 2023-05-08 only channel 1 is in use
+# so this class only defines channel 1. If the
+# second channel is put in use change 
+#   channel_numbers=(1,)
+# to 
+#   channel_nubmers=(1, 2)
+xspress3_mini_class = build_xspress3_class(
+    channel_numbers=(1,),
     mcaroi_numbers=(1, 2, 3, 4),
     image_data_key="fluor",
     xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
@@ -303,15 +317,15 @@ xspress3_class = build_xspress3_class(
         "hdf5": Component(
             Xspress3HDF5Plugin,
             "HDF1:",
-            name="h5p",
+            name="hdf5",
             root_path="/nsls2/data/tes/legacy/raw",
             path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d",
-            resource_kwargs={}
         )
     }
 )
 
-class TESXspress3Detector(xspress3_class):
+
+class TESXspress3Detector(xspress3_mini_class):
     # this is used as a latch to put the xspress3 into 'bulk' mode
     # for fly scanning.  Do this is a signal (rather than as a local variable
     # or as a method) so we can modify this as part of a plan
@@ -326,36 +340,36 @@ class TESXspress3Detector(xspress3_class):
                 "external_trig",
                 "total_points",
                 "spectra_per_point",
-                # "settings", does not exist on community IOC, replace with "cam"
                 "cam",
                 "rewindable",
             ]
         if read_attrs is None:
-            read_attrs = ["channel01", "hdf5"]
+            # E step scan
+            # read_attrs = ["channel01", "hdf5"]
+            # xy flyscan
+            read_attrs = ["fluor", "channel01", "hdf5"]
+
         super().__init__(
             prefix,
             configuration_attrs=configuration_attrs,
             read_attrs=read_attrs,
             **kwargs,
         )
-        # this is possiblely one too many places to store this
+        # this is possibly one too many places to store this
         # in the parent class it looks at if the extrenal_trig signal is high
         self._mode = TESMode.step
 
-        self.stage_sigs.update(
-            {
-                #self.cam.trigger_mode: "Software"  # 3 is TTL Veto Only
-            }
-        )
+        self.bulk_data_spec = "XSP3_FLY"
 
     def stop(self, *, success=False):
+        print("Xspress3Detector.stop")
         stop_result = super().stop()
         self.cam.acquire.put(0)
         self.hdf5.stop(success=success)
         return stop_result
 
     def stage(self):
-        print("starting stage")
+        #print("starting stage")
         # do the latching
         if self.fly_next.get():
             print("put False to fly_next")
@@ -363,35 +377,45 @@ class TESXspress3Detector(xspress3_class):
             self._mode = TESMode.fly
 
         if self.external_trig.get():
+            #print("setting TTL Veto Only trigger mode")
             self.stage_sigs = {
                 self.cam.trigger_mode: "TTL Veto Only"
             }
         else:
+            #print("setting Internal trigger mode")
             self.stage_sigs = {
                 self.cam.trigger_mode: "Internal"
             }
 
-        print("stage the parent")
         return super().stage()
 
     def unstage(self):
         try:
+            # when a scan is aborted we are seeing
+            # the xspress3 acquire PV remaining at 1
+            # we had to use CSS to "stop" the xspress3
+            self.cam.acquire.put(0, wait=True)
             unstage_result = super().unstage()
         finally:
             self._mode = TESMode.step
         return unstage_result
 
-
 xs = TESXspress3Detector(prefix="XF:08BM-ES{Xsp:2}:", name="xs")
+
+# jlynch: SRX does this
+xs.hdf5.stage_sigs[xs.hdf5.blocking_callbacks] = 1
 
 xs.energy_calibration.kind = "config"
 
+xs.fluor.name = "fluor"
+xs.fluor.kind = Kind.normal  # this is for xy flyscan only
 for channel in xs.iterate_channels():
-    channel.kind = "normal"
+    #channel.kind = "normal" this is for e step scan only
+    #channel.fluor.shape = (1, 1, 4096)
     for mcaroi in channel.iterate_mcarois():
         # "normal" may be ok as well
-        mcaroi.kind = "hinted"
-        mcaroi.total_rbv.kind = "hinted"
+        mcaroi.kind = Kind.hinted
+        mcaroi.total_rbv.kind = Kind.hinted
 
 
 # is this necessary?
@@ -421,3 +445,15 @@ xs.cam.configuration_attrs = [
     "run_flags",
     "trigger_signal",
 ]
+
+class BulkXspress3Handler(HandlerBase):
+    HANDLER_NAME = "BULK_XSPRESS3"
+
+    def __init__(self, resource_fn):
+        self._handle = h5py.File(resource_fn, "r")
+
+    def __call__(self, frame=-1, channel=-1):
+        if channel < 0:
+            return self._handle["entry/instrument/detector/data"][:]
+        else:
+            return self._handle["entry/instrument/detector/data"][:, channel, :]
