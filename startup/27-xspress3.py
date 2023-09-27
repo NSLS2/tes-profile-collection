@@ -320,6 +320,7 @@ xspress3_mini_class = build_xspress3_class(
             name="hdf5",
             root_path="/nsls2/data/tes/legacy/raw",
             path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d",
+            resource_kwargs={},
         )
     }
 )
@@ -347,7 +348,7 @@ class TESXspress3Detector(xspress3_mini_class):
             # E step scan
             # read_attrs = ["channel01", "hdf5"]
             # xy flyscan
-            read_attrs = ["fluor", "channel01", "hdf5"]
+            read_attrs = ["channel01.fluor", "channel01", "hdf5"]
 
         super().__init__(
             prefix,
@@ -407,8 +408,8 @@ xs.hdf5.stage_sigs[xs.hdf5.blocking_callbacks] = 1
 
 xs.energy_calibration.kind = "config"
 
-xs.fluor.name = "fluor"
-xs.fluor.kind = Kind.normal  # this is for xy flyscan only
+xs.channel01.fluor.name = "fluor"
+xs.channel01.fluor.kind = Kind.normal  # this is for xy flyscan only
 for channel in xs.iterate_channels():
     #channel.kind = "normal" this is for e step scan only
     #channel.fluor.shape = (1, 1, 4096)
