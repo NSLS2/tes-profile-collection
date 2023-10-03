@@ -13,3 +13,5 @@ sudo chown -Rv $USER: /nsls2/
 #   https://github.com/NSLS-II/bloptools/pull/5
 #
 pip install -v git+https://github.com/NSLS-II/bloptools.git@main
+
+pip install nslsii==0.9.1
