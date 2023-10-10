@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import numpy as np
 from scipy.special import erf
 from scipy.optimize import curve_fit

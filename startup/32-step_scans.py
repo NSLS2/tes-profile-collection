@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import pprint
 from bluesky.plans import list_scan
 from bluesky.plans import grid_scan

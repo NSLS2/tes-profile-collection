@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 from collections.abc import Sequence
 from itertools import zip_longest
 import datetime

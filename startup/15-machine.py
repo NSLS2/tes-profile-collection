@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 from ophyd import EpicsSignal, EpicsSignalRO
 
 # Those parameters are used by suspenders in 98-suspenders.py:

@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import numpy as np
 from bluesky.callbacks.broker import post_run
 from bluesky.callbacks.mpl_plotting import LiveGrid

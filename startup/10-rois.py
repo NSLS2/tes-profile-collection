@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import matplotlib.pyplot as pp
 
 element_to_roi = {

@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import tifffile
 
 from bluesky.callbacks import CallbackBase

@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import datetime
 import os.path
 import pprint
@@ -60,6 +62,7 @@ def xy_fly(
         ystop,
         ystep_size=None,
         xspress3=None,
+        plot=True,
 ):
     """Do a x-y fly scan.
 
@@ -158,6 +161,57 @@ def xy_fly(
         yield from bps.sleep(0.2)
 
 
+    if plot and xspress3:
+        if hasattr(xspress3, 'channel01'):
+            roi_pv = xspress3.channel01.mcaroi01.ts_total
+            ## Erase the TS buffer
+            # yield from mov(ts_start, 0)  # Start time series collection
+            # yield from mov(ts_start, 2)  # Stop time series collection
+            # yield from mov(ts_start, 0)  # Start time series collection
+            # yield from mov(ts_start, 2)  # Stop time series collection
+            try:
+                yield from bps.abs_set(xspress3.cam.acquire, 'Done', timeout=1)
+            except Exception as e:
+                print('Timeout setting X3X to status \"Done\". Continuing...')
+                print(e)
+            try:
+                # This erases the time-series array, otherwise we see the previous scan
+                yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 2, wait=True, timeout=1)  # Stop time series collection
+                yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 0, wait=True, timeout=1)  # Start/erase time series collection
+                yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 2, wait=True, timeout=1)  # Stop time series collection
+            except Exception as e:
+                # Eating the exception
+                print('The time-series did not clear correctly. Continuing...')
+                print(e)
+        else:
+            roi_pv = xspress3.channel1.rois.roi01.value
+    else:
+        plot = False
+
+    if plot:
+        if (num_ypixels == 1):
+            livepopup = [
+                # SRX1DFlyerPlot(
+                SRX1DTSFlyerPlot(
+                    roi_pv.name,
+                    xstart=xstart,
+                    xstep=(xstop-xstart)/(num_xpixels-1),
+                    xlabel=xy_fly_stage.x.name
+                )
+            ]
+        else:
+            livepopup = [
+                # LiveGrid(
+                TSLiveGrid(
+                    (num_ypixels, num_xpixels),
+                    roi_pv.name,
+                    extent=(xstart, xstop, ystart, ystop),
+                    x_positive='right',
+                    y_positive='down'
+                )
+            ]
+    else:
+        livepopup = []
 
     # TODO make this a message?
     sclr.set_mode("flying")
@@ -177,6 +231,7 @@ def xy_fly(
         yield from bps.mv(xspress3.total_points, num_xpixels)
         yield from bps.mv(xspress3.cam.num_images, num_xpixels)
 
+    # @ts_monitor_during_decorator([roi_pv])
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     #@bpp.subs_decorator({"all": [roi_livegrid]})
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
@@ -207,13 +262,16 @@ def xy_fly(
         }
     )
     def fly_body():
-
         yield from bps.mv(xy_fly_stage.x, xstart, xy_fly_stage.y, ystart)
 
         #  This part is not necessary to be here. revised by YDu
         for v in ["p1600=0", "p1600=1"]:
             yield from bps.mv(dtt, v)
             yield from bps.sleep(0.2)
+
+        # Set TimeSeries to collect correct number of points
+        if xspress3:
+            yield from bps.abs_set(xspress3.channel01.mcaroi.ts_num_points, num_xpixels, wait=True, timeout=10)
 
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
         def fly_row():
@@ -225,6 +283,8 @@ def xy_fly(
             yield from bps.abs_set(
                 y_centers, np.ones(num_xpixels) * target_y
             )  # set the fly speed
+
+
 
    #         ret = yield from bps.read(xy_fly_stage.z.user_readback)  # (in mm)
             #  revised by YDu, no such value before
@@ -307,6 +367,13 @@ def xy_fly(
         for y in range(num_ypixels):
             if xspress3 is not None:
                 yield from bps.mov(xspress3.fly_next, True)
+                # try:
+                #     print(f"Starting time-series")
+                #     yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 0, timeout=3, wait=True)
+                #     print(' x3x time-series erase-start...done\n')
+                # except Exception as e:
+                #     print('Timeout on starting time-series! Continuing...')
+                #     print(e)
 
             yield from fly_row()
 
