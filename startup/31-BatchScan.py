@@ -104,7 +104,7 @@ def Batch_xy_fly(index=None):
             xspress3=detector,
         )
 
-def Batch_E_step(index=None):
+def Batch_E_step(index=None, xspress3=None):
     # root = "/home/xf08bm/Desktop/Users/"
     # root.withdraw()
 
@@ -137,8 +137,7 @@ def Batch_E_step(index=None):
                                dwell_time=dwell_time,
                                E_sections=E_sections,
                                step_size=Step_size,
-                               num_scans=num_scans,
-                               xspress3=xs)
+                               num_scans=num_scans)
 
 def Batch_XANES_mapping(index=None):
 
