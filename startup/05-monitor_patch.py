@@ -24,9 +24,7 @@ async def ts_monitor(self, msg):
 
     where kwargs are passed through to ``obj.subscribe()``
     """
-    print(f"msg={msg}")
     obj = msg.obj
-    print(f"obj={obj}")
     # TODO inject this through the msg
     reset_count_name = "reset_count"
     index_name = "index_count"
@@ -92,12 +90,9 @@ async def ts_monitor(self, msg):
         nonlocal seen
         nonlocal seq_num_count
         nonlocal reset_count
-        print(f"'emit_event_page' is called")
         # Ignore the inputs. Use this call as a signal to call read on the
         # object, a crude way to be sure we get all the info we need.
         data, timestamps = _rearrange_into_parallel_dicts(obj.read())
-        print(f"data={data}")
-        print(f"timestamps={timestamps}")
         # there should only be one key in here! get it out
         ((k, ts_data),) = data.items()
         ((k, ts_ts),) = timestamps.items()
@@ -129,7 +124,6 @@ async def ts_monitor(self, msg):
             seq_num=list(range(seq_num_count, seq_num_count + len(emited_data))),
             uid=[new_uid() for _ in range(len(emited_data))],
         )
-        print(f"event_page={event_page}")
         # update our book keeping
         seen = len(ts_data)
         seq_num_count += len(emited_data)
@@ -141,7 +135,6 @@ async def ts_monitor(self, msg):
     # publish the descriptor
     await self.emit(DocumentNames.descriptor, desc_doc)
     obj.subscribe(emit_event_page, **kwargs)
-    print(f"Done")
 
 def ts_monitor_during_wrapper(plan, signals):
     """

@@ -636,7 +636,6 @@ class TSLiveGrid(QtAwareCallback):
         if len(new_y):
             self.y_data = np.append(self.y_data, new_y)
             self.x_data = np.append(self.x_data, new_x)
-
             n_total = self.nx * self.ny
             if len(self.y_data) > n_total:
                 image_data = self.y_data[:n_total]

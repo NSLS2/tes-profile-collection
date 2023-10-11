@@ -231,7 +231,8 @@ def xy_fly(
         yield from bps.mv(xspress3.total_points, num_xpixels)
         yield from bps.mv(xspress3.cam.num_images, num_xpixels)
 
-    # @ts_monitor_during_decorator([roi_pv])
+    @bpp.subs_decorator(livepopup)
+    @ts_monitor_during_decorator([roi_pv])
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
     #@bpp.subs_decorator({"all": [roi_livegrid]})
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
@@ -258,6 +259,10 @@ def xy_fly(
                 "xpixels": num_xpixels,
                 "ypixels": num_ypixels,
                 "prescale": prescale,
+            },
+            "scan": {
+                "snake": False,
+                "shape": [num_xpixels, num_ypixels],
             },
         }
     )
@@ -367,13 +372,12 @@ def xy_fly(
         for y in range(num_ypixels):
             if xspress3 is not None:
                 yield from bps.mov(xspress3.fly_next, True)
-                # try:
-                #     print(f"Starting time-series")
-                #     yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 0, timeout=3, wait=True)
-                #     print(' x3x time-series erase-start...done\n')
-                # except Exception as e:
-                #     print('Timeout on starting time-series! Continuing...')
-                #     print(e)
+                try:
+                    yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 0, timeout=3, wait=True)
+                    # print(' x3x time-series erase-start...done\n')
+                except Exception as e:
+                    print('Timeout on starting time-series! Continuing...')
+                    print(e)
 
             yield from fly_row()
 
