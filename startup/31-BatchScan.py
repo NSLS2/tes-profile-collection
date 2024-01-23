@@ -13,6 +13,7 @@ def Batch_E_fly(index=None):
     file_path = os.path.join(get_ipython().profile_dir.location, 'config/BatchScan_Para.xls')
     data = np.array(pd.read_excel(file_path, sheet_name="E_fly", index_col=0))
     xy_fly_stage = xy_stage
+    yield from bps.mv(mono.linear.velocity, 0.3)
 
     if index is None:
         index = range(data.shape[0])
@@ -32,6 +33,7 @@ def Batch_E_fly(index=None):
         if detector != "xs":
             detector = None
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
+        yield from bps.mv(mono.linear.velocity, 0.3)
         yield from E_fly(
             scan_title,
             operator=operator,

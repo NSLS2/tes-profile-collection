@@ -184,7 +184,7 @@ def xy_fly(
                 print('The time-series did not clear correctly. Continuing...')
                 print(e)
         else:
-            roi_pv = xspress3.channel1.rois.roi01.value
+            roi_pv = xspress3.channel01.mcaroi01.total_rbv.value
     else:
         plot = False
 
@@ -464,14 +464,16 @@ def E_fly(
 
     if xspress3 is not None:
         yield from bps.mv(xs.external_trig, True)
-        yield from mv(xspress3.total_points, num_pixels)
-        yield from mv(xspress3.hdf5.num_capture, num_pixels)
-        yield from mv(xspress3.settings.num_images, num_pixels)
+        #yield from mv(xspress3.total_points, num_pixels)
+        yield from bps.mv(xspress3.hdf5.num_capture, num_pixels)
+        #yield from mv(xspress3.settings.num_images, num_pixels)
+        yield from bps.mv(xspress3.total_points, num_pixels)
+        yield from bps.mv(xspress3.cam.num_images, num_pixels)
 
     @bpp.reset_positions_decorator([mono.linear])
     @bpp.stage_decorator([sclr])
     # @bpp.subs_decorator({"all": [roi_livegrid]})
-    @bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
+    #@bpp.monitor_during_decorator([xs.channel01.mcaroi01.total_rbv.value])
     #@bpp.baseline_decorator([mono, xy_stage])
     # TODO put is other meta data
     @bpp.run_decorator(
@@ -508,7 +510,7 @@ def E_fly(
             # go to start of row
 
             yield from bps.checkpoint()
-            yield from bps.mv(mono.linear.velocity, 1)
+            yield from bps.mv(mono.linear.velocity, 0.3)
             yield from bps.mv(mono.linear, l_start)
 
             # set the fly speed
@@ -549,6 +551,7 @@ def E_fly(
             yield from bps.mv(mono.linear.velocity, 1)
 
         for scan_iter in range(num_scans):
+            yield from bps.mv(mono.linear.velocity, 0.3)
             if xspress3 is not None:
                 yield from bps.mv(xspress3.fly_next, True)
             yield from fly_once(scan_iter)
@@ -656,10 +659,10 @@ def XANES_mapping(
     #for v in ["p1600=0", "p1607=4", "p1601=5", "p1602 = 2", "p1600=1"]:
         #yield from bps.mv(dtt, v)
         #yield from bps.sleep(0.1)
-    roi = rois(element)
-    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
-                  xs.channel1.rois.roi01.bin_high, roi[1])
-    yield from bps.sleep(0.1)
+ #   roi = rois(element)
+ #   yield from bps.mv(xs.channel01.rois.roi01.bin_low, roi[0],
+ #                 xs.channel01.rois.roi01.bin_high, roi[1])
+ #  yield from bps.sleep(0.1)
 #    xs.channel1.rois.roi01.bin_low.set(roi[0])
 #    xs.channel1.rois.roi01.bin_high.set(roi[1])
     E_sections = np.array(E_sections)

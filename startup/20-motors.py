@@ -32,7 +32,7 @@ class Mono(Device):
 mono = Mono(name="mono")
 mono.energy.settle_time = 2.5
 mono.linear.settle_time = 2.5
-#mono.settle_time = 2.0
+#mono.settle_time = 4.5
 
 dtt = EpicsSignal("XF:08BM-CT{MC:06}Asyn.AOUT", name="dtt", string=True)
 
