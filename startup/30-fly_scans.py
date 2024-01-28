@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from ophyd.status import WaitTimeoutError
 from ophyd.utils import LimitError
 from ophyd import Signal
 import bluesky.plan_stubs as bps
@@ -232,6 +233,8 @@ def xy_fly(
         yield from bps.mv(xspress3.total_points, num_xpixels)
         yield from bps.mv(xspress3.cam.num_images, num_xpixels)
 
+
+
     @bpp.subs_decorator(livepopup)
     @ts_monitor_during_decorator([roi_pv])
     @bpp.reset_positions_decorator([xy_fly_stage.x, xy_fly_stage.y])
@@ -279,8 +282,22 @@ def xy_fly(
         if xspress3:
             yield from bps.abs_set(xspress3.channel01.mcaroi.ts_num_points, num_xpixels, wait=True, timeout=10)
 
+        #n_current_row = 0
+
         @bpp.stage_decorator([x for x in [xspress3] if x is not None])
         def fly_row():
+
+            ## Artificially make the scan to stall at the end of row #2 (for debugging !!!)
+            #nonlocal n_current_row  #################
+            #n_current_row += 1   ############
+            #if n_current_row == 2:  ############
+            #    yield from bps.mv(xspress3.total_points, num_xpixels + 1)  ###########
+            #    yield from bps.mv(xspress3.cam.num_images, num_xpixels + 1)  ###############
+            #else:  ##################
+            #    yield from bps.mv(xspress3.total_points, num_xpixels)  ###########
+            #    yield from bps.mv(xspress3.cam.num_images, num_xpixels)  ###############
+            
+            
             # go to start of row
             yield from bps.mv(xy_fly_stage.x.velocity, 5.0)
             target_y = ystart + y * a_ystep_size
@@ -317,7 +334,8 @@ def xy_fly(
             #yield from bps.sleep(3)
             #if xspress3 is not None:
                 #print("triggering xspress3")
-            yield from bps.trigger(xspress3, group=f"fly_row_{y}")
+            #yield from bps.trigger(xspress3, group=f"fly_row_{y}")
+            st_xs3 = yield from bps.trigger(xspress3, group="xspress3")
                 # bps.mv(xspress3.hdf5.capture, 0)
                 # bps.mv(xspress3.hdf5.capture, 1)
             print("wait after triggering xspress3...")
@@ -335,6 +353,16 @@ def xy_fly(
          #   print(f"Motor finished: {time.time()}")
 
             yield from bps.wait(group=f"fly_row_{y}")
+            try:
+                st_xs3.wait(timeout=num_xpixels * dwell_time + 20)
+            except WaitTimeoutError as ex:
+                print(f"XS3 timeout occurred. Failed to complete the row scan")
+                try:
+                    yield from bps.abs_set(xspress3.cam.acquire, 'Done', wait=True, timeout=10)
+                    yield from abs_set(xspress3.hdf5.capture, 'Done', wait=True, timeout=10)                
+                    # yield from abs_set(xspress3.hdf5.write_file, 'Write', wait=True, timeout=10)
+                except Exception as ex1:
+                    print(f"Failed to reset XS3: {ex1}")
 
             #yield from bps.mv(
             #    xy_fly_stage.x, xstop + a_xstep_size, group=f"fly_row_{y}"
