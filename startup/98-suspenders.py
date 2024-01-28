@@ -34,7 +34,7 @@ RE.install_suspender(sus_abs_low)
 RE.install_suspender(sus_abs_hi)
 
 '''
-
+'''
 ############################
 
 ring_suspender = SuspendFloor(ring_current, 50, resume_thresh=399, sleep=60)
@@ -65,7 +65,7 @@ for s in RE.suspenders:
 
 #####################################
 
-
+'''
 '''
 
 def mono_tilt():

@@ -35,8 +35,8 @@ def export_E_fly(scanID=-1):
     I_TEY = h.table()['fbratio']
     E = h.table('energy_bins')['E_centers'][1]
     I0 = h.table()['I0']
-    I_sclr_S = h.table()['S']
-    Dwell_time = h.table()['dwell_time']
+    #I_sclr_S = h.table()['S']
+    #Dwell_time = h.table()['dwell_time']
     dt = datetime.datetime.fromtimestamp(start["time"])
 
     file_head = {'beamline_id': 'TES/8-BM of NSLS-II',

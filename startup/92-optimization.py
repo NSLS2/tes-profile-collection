@@ -59,57 +59,12 @@ def _extract_tb():
     )
 
 
-if auto_alignment_mode():  # defined in 00-startup.py
+#if auto_alignment_mode():  # defined in 00-startup.py
     # Enable the auto-alignment mode.
     # In this mode, the KB-mirror motors an optionally, toroidal mirror motors
     # will be moved. For that to work, the I0 suspender will have to be disabled
     # to avoid the interference with the mono feedback system
     # (https://github.com/NSLS-II-TES/tes-horizontal-feedback).
-
-    try:
-        # Imports for bloptools < v0.0.2.
-        from bloptools.de_opt_utils import run_hardware_fly
-        from bloptools.de_optimization import optimization_plan
-    except (ImportError, ModuleNotFoundError):
-        _extract_tb()
-
-        print("\nFalling back to a newer version of bloptools...\n")
-        # The modules were moved to the `de` package in https://github.com/NSLS-II/bloptools/pull/5.
-        # To be released as v0.1.0 or newer.
-        try:
-            from bloptools import gp
-            from bloptools.de.de_opt_utils import run_hardware_fly
-            from bloptools.de.de_optimization import optimization_plan
-        except (ImportError, ModuleNotFoundError):
-            _extract_tb()
-            print(f"\nContinuing without bloptools...\n")
-
-    ###########################################################################
-    #                            DE optimization                              #
-    ###########################################################################
-
-    # motor_dict = {
-    #     sample_stage.x.name: {"position": sample_stage.x},
-    #     sample_stage.y.name: {"position": sample_stage.y},
-    #     # sample_stage.z.name: {'position': sample_stage.z},
-    # }
-
-    # bound_vals = [(43, 44), (34, 35)]
-    # motor_bounds = {}
-    # motor_dict_keys = list(motor_dict.keys())
-    # for k in range(len(motor_dict_keys)):
-    #     motor_bounds[motor_dict_keys[k]] = {"position": [bound_vals[k][0], bound_vals[k][1]]}
-
-    # instantiate plt.figure() before running optimization_plan
-    # import matplotlib.pyplot as plt
-    # plt.figure()
-
-    # Usage:
-    #
-    # RE(optimization_plan(fly_plan=run_hardware_fly, bounds=motor_bounds, db=db,
-    #                      motors=motor_dict, detector=xs, start_det=start_detector,
-    #                      read_det=read_detector, stop_det=stop_detector,
-    #                      watch_func=watch_function))
 
     ###########################################################################
     #                            GP optimization                              #
@@ -117,36 +72,112 @@ if auto_alignment_mode():  # defined in 00-startup.py
 
     # dofs = [kbv.ush, kbv.dsh]
     # dofs = [kbh.ush, kbh.dsh]
-    dofs = [toroidal_mirror.ush, toroidal_mirror.dsh]
-    dofs = [
-        toroidal_mirror.usy,
-        toroidal_mirror.dsy,
-        toroidal_mirror.ush,
-        toroidal_mirror.dsh,
-    ]
-    dofs = np.array([kbv.ush, kbv.dsh, kbh.ush, kbh.dsh])
-    # dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh, toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh]
 
-    rel_bounds = {
-        "kbv_ush": [-1e-1, +1e-1],
-        "kbv_dsh": [-1e-1, +1e-1],
-        "kbh_ush": [-1e-1, +1e-1],
-        "kbh_dsh": [-1e-1, +1e-1],
-        "toroidal_mirror_ush": [-1e-1, +1e-1],
-        "toroidal_mirror_dsh": [-1e-1, +1e-1],
-        "toroidal_mirror_usy": [-1e-1, +1e-1],
-        "toroidal_mirror_dsy": [-1e-1, +1e-1],
-    }
-    fid_params = {
-        "kbv_ush": -0.0500010,
-        "kbv_dsh": -0.0500010,
-        "kbh_ush": 2.2650053,
-        "kbh_dsh": 3.3120017,
-        "toroidal_mirror_ush": -9.515,
-        "toroidal_mirror_dsh": -3.92,
-        "toroidal_mirror_usy": -6.284,
-        "toroidal_mirror_dsy": -9.2575,
-    }
-    hard_bounds = np.r_[[fid_params[dof.name] + 2 * np.array(rel_bounds[dof.name]) for dof in dofs]]
+from blop import DOF, Objective, Agent
 
-    # gpo = gp.Optimizer(init_scheme='quasi-random', n_init=4, run_engine=RE, db=db, shutter=psh, detector=vstream, detector_type='image', dofs=dofs, dof_bounds=hard_bounds, fitness_model='max_sep_density', training_iter=256, verbose=True)
+
+kb_radius = 0.1
+
+toroid_radius = 0.02
+
+kbh_ush_bounds = 2.33 + kb_radius * np.array([-1, +1])
+kbh_dsh_bounds = 3.36 + kb_radius * np.array([-1, +1])
+
+kbv_ush_bounds = .15 + kb_radius * np.array([-1, +1])
+kbv_dsh_bounds = .13 + kb_radius * np.array([-1, +1])
+
+toroid_ush_bounds = -9.51 + toroid_radius * np.array([-1, +1])
+toroid_dsh_bounds = -3.858 + toroid_radius * np.array([-1, +1])
+
+#kbh_ush_bounds = kbh.dsh.read()["kbh_ush"]["value"] + np.array([-0.05, 0.05])
+#kbh_dsh_bounds = kbh.dsh.read()["kbh_dsh"]["value"] + np.array([-0.05, 0.05])
+
+
+dofs = [
+    DOF(device=kbh.ush, search_bounds=kbh_ush_bounds, description="KBH upstream", tags=["kb"], active=False),
+    DOF(device=kbh.dsh, search_bounds=kbh_dsh_bounds, description="KBH downstream", tags=["kb"], active=False),
+    DOF(device=kbv.ush, search_bounds=kbv_ush_bounds, description="KBV upstream", tags=["kb"], active=False),
+    DOF(device=kbv.dsh, search_bounds=kbv_dsh_bounds, description="KBV downstream", tags=["kb"], active=False),
+    DOF(device=toroidal_mirror.ush, search_bounds=toroid_ush_bounds, description="Toroid upstream height", tags=["toroid"]),
+    DOF(device=toroidal_mirror.dsh, search_bounds=toroid_dsh_bounds, description="Toroid downstream height", tags=["toroid"]),
+]
+
+objs = [
+    Objective(name="I0", target="max", log=True, latent_groups=[("toroidal_mirror_ush", "toroidal_mirror_dsh")]),
+    Objective(name="wid_x", target="min", log=True, latent_groups=[("kbh_ush", "kbh_dsh")], weight=0),
+    Objective(name="wid_y", target="min", log=True, latent_groups=[("kbv_ush", "kbv_dsh")], weight=0),
+]
+
+dets = [vstream, I0]
+
+from blop.utils.misc import best_image_feedback
+
+def digestion(db, uid):
+
+    products = db[uid].table(fill=True)
+
+    for index, entry in products.iterrows():
+
+        im = entry.vstream_image
+
+        ny, nx = im.shape
+
+        x0, xw, y0, yw = best_image_feedback(im)
+
+        bad = False
+        bad |= x0 < 16
+        bad |= x0 > nx - 16
+        bad |= y0 < 16
+        bad |= y0 > ny - 16
+
+        if bad:
+            x0, xw, y0, yw = 4 * [np.nan]
+
+        products.loc[index, "pos_x"] = x0
+        products.loc[index, "pos_y"] = y0
+        products.loc[index, "wid_x"] = xw 
+        products.loc[index, "wid_y"] = yw
+
+
+    return products
+
+
+agent = Agent(dofs=dofs, objectives=objs, dets=dets, digestion=digestion, db=db)
+
+
+
+
+
+    # dofs = [toroidal_mirror.ush, toroidal_mirror.dsh]
+    # dofs = [
+    #     toroidal_mirror.usy,
+    #     toroidal_mirror.dsy,
+    #     toroidal_mirror.ush,
+    #     toroidal_mirror.dsh,
+    # ]
+    # dofs = np.array([kbv.ush, kbv.dsh, kbh.ush, kbh.dsh])
+    # # dofs = [kbv.ush, kbv.dsh, kbh.ush, kbh.dsh, toroidal_mirror.usy, toroidal_mirror.dsy, toroidal_mirror.ush, toroidal_mirror.dsh]
+
+    # rel_bounds = {
+    #     "kbv_ush": [-1e-1, +1e-1],
+    #     "kbv_dsh": [-1e-1, +1e-1],
+    #     "kbh_ush": [-1e-1, +1e-1],
+    #     "kbh_dsh": [-1e-1, +1e-1],
+    #     "toroidal_mirror_ush": [-1e-1, +1e-1],
+    #     "toroidal_mirror_dsh": [-1e-1, +1e-1],
+    #     "toroidal_mirror_usy": [-1e-1, +1e-1],
+    #     "toroidal_mirror_dsy": [-1e-1, +1e-1],
+    # }
+    # fid_params = {
+    #     "kbv_ush": -0.0500010,
+    #     "kbv_dsh": -0.0500010,
+    #     "kbh_ush": 2.2650053,
+    #     "kbh_dsh": 3.3120017,
+    #     "toroidal_mirror_ush": -9.515,
+    #     "toroidal_mirror_dsh": -3.92,
+    #     "toroidal_mirror_usy": -6.284,
+    #     "toroidal_mirror_dsy": -9.2575,
+    # }
+    # hard_bounds = np.r_[[fid_params[dof.name] + 2 * np.array(rel_bounds[dof.name]) for dof in dofs]]
+
+    # # gpo = gp.Optimizer(init_scheme='quasi-random', n_init=4, run_engine=RE, db=db, shutter=psh, detector=vstream, detector_type='image', dofs=dofs, dof_bounds=hard_bounds, fitness_model='max_sep_density', training_iter=256, verbose=True)

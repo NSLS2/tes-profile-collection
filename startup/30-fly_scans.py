@@ -49,6 +49,7 @@ y_centers.tolerance = 1e-15
 z_centers = Signal(value=[], name="z_centers", kind="normal")
 z_centers.tolerance = 1e-15
 
+#sys.stdout = keyw
 
 def xy_fly(
         scan_title,
@@ -302,14 +303,14 @@ def xy_fly(
         #    yield from bps.mov(z_centers, np.ones(num_xpixels) * zpos)
 
             yield from bps.mv(xy_fly_stage.x.velocity, flyspeed)
-
+            yield from bps.sleep(0.2)
             yield from bps.trigger_and_read([xy_fly_stage], name="row_ends")
-
+            yield from bps.sleep(0.2)
 
 
             # arm the struck
-            import time
-      #      print(f"Starting row scan: {time.time()}")
+            #import time
+            #print(f"Starting row scan: {time.time()}")
 
             # maybe start the xspress3
             #print("wait to trigger xspress3...")
@@ -319,11 +320,11 @@ def xy_fly(
             yield from bps.trigger(xspress3, group=f"fly_row_{y}")
                 # bps.mv(xspress3.hdf5.capture, 0)
                 # bps.mv(xspress3.hdf5.capture, 1)
-            #print("wait after triggering xspress3...")
+            print("wait after triggering xspress3...")
             #yield from bps.sleep(3)
             yield from bps.trigger(sclr, group=f"fly_row_{y}")
             #  revised by YDu, use to be 1.5
-     #       print(f"After trigger: {time.time()}")
+            #print(f"After trigger: {time.time()}")
 
             yield from bps.sleep(2)            # fly the motor
             yield from bps.abs_set(
@@ -367,7 +368,7 @@ def xy_fly(
         #        #print(5 - abs(xstop - xstart)/5)
          #       time.sleep(5.3 - abs(xstop - xstart)/5)
 
-            print(f"Data is saved: {time.time()}")
+            #print(f"Data is saved: {time.time()}")
 
         for y in range(num_ypixels):
             if xspress3 is not None:
@@ -375,6 +376,7 @@ def xy_fly(
                 try:
                     yield from bps.abs_set(xspress3.channel01.mcaroi.ts_control, 0, timeout=3, wait=True)
                     # print(' x3x time-series erase-start...done\n')
+
                 except Exception as e:
                     print('Timeout on starting time-series! Continuing...')
                     print(e)
@@ -436,6 +438,8 @@ def E_fly(
     a_l_step_size = prescale * (5 * lmres)
 
     num_pixels = int(np.floor((l_stop - l_start) / a_l_step_size))
+    print(f"l_start={l_start} l_stop={l_stop} a_l_step_size={a_l_step_size}")
+    print(f"=========== num_pixels={num_pixels} ==============")
 
     bin_edges = _linear_to_energy(l_start + a_l_step_size * np.arange(num_pixels + 1))
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
@@ -463,7 +467,9 @@ def E_fly(
     yield from bps.mv(sclr.mcas.nuse, num_pixels)
 
     if xspress3 is not None:
-        yield from bps.mv(xs.external_trig, True)
+        xspress3.fluor.shape = (num_pixels, 2, 4096)
+        xspress3.fluor.dims = ("num_pixels", "channels", "bin_count")
+        yield from bps.mv(xspress3.external_trig, True)
         #yield from mv(xspress3.total_points, num_pixels)
         yield from bps.mv(xspress3.hdf5.num_capture, num_pixels)
         #yield from mv(xspress3.settings.num_images, num_pixels)
@@ -510,7 +516,7 @@ def E_fly(
             # go to start of row
 
             yield from bps.checkpoint()
-            yield from bps.mv(mono.linear.velocity, 0.3)
+            yield from bps.mv(mono.linear.velocity, 0.1)
             yield from bps.mv(mono.linear, l_start)
 
             # set the fly speed
@@ -548,7 +554,7 @@ def E_fly(
                 yield from bps.read(xspress3)
 
             yield from bps.save()
-            yield from bps.mv(mono.linear.velocity, 1)
+            yield from bps.mv(mono.linear.velocity, 0.3)
 
         for scan_iter in range(num_scans):
             yield from bps.mv(mono.linear.velocity, 0.3)
@@ -560,7 +566,7 @@ def E_fly(
 
 #export data
     print("Waiting for files... ...")
-    yield from bps.sleep(15)
+    yield from bps.sleep(5)
     export_E_fly(-1)
 
     '''
