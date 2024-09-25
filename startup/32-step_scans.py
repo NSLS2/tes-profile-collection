@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import pprint
 from bluesky.plans import list_scan
 from bluesky.plans import grid_scan
@@ -50,7 +52,7 @@ def _get_v_with_dflt(sig, dflt):
 
 
 #@bpp.baseline_decorator([mono, xy_stage])
-def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step_size, num_scans):
+def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, E_sections, step_size, num_scans):
 #def E_Step_Scan(dwell_time,*, scan_title = "abc",E_sections = [2700, 2800, 2900, 3200], step_size = [4, 1, 2], num_scans=2, element = 's'):
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
@@ -65,7 +67,7 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
     #for v in ["p1600=0", "p1607=4", "p1601=5", "p1602 = 2", "p1600=1"]:
         #yield from bps.mv(dtt, v)
         #yield from bps.sleep(0.1)
-    roi = rois(element)
+#    roi = rois(element)
 #    yield from bps.mv(xs.channel1.rois.roi01.bin_low, roi[0],
 #                  xs.channel1.rois.roi01.bin_high, roi[1])
 #    yield from bps.sleep(0.1)
@@ -73,7 +75,7 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
 #    xs.channel1.rois.roi01.bin_high.set(roi[1])
     E_sections = np.array(E_sections)
     step_size = np.array(step_size)
-
+    detector = detector
     xs.hdf5.spec = "XSP3"
 
     ept = []
@@ -82,13 +84,23 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
         ept = np.append(ept, np.linspace(E_sections[ii], E_sections[ii+1], int((E_sections[ii+1] - E_sections[ii])/step_size[ii])+1))
 #        print(ept)
     sclr.set_mode("counting")
-    yield from bps.mv(xs.external_trig, False) # xs triger mode false means internal trigger
-    yield from bps.mv(xs.cam.num_images, 1)
+
+    if detector == "xs":
+        yield from bps.mv(xs.external_trig, False) # xs triger mode false means internal trigger
+        yield from bps.mv(xs.cam.num_images, 1)
+
+
+
+    else:
+        yield from bps.mv(xssmart.external_trig, False)  # xs triger mode false means internal trigger
+        yield from bps.mv(xssmart.cam.num_images, 1)
+
+
     yield from bps.mv(sclr.cnts.preset_time, dwell_time,
-                      xs.cam.acquire_time, dwell_time)#setting dwell time
+                      xs.cam.acquire_time, dwell_time, xssmart.cam.acquire_time, dwell_time)#setting dwell time
     ept_linear =  _energy_to_linear(ept)
     #yield from bps.mv(sclr.set_mode,"counting")
-    yield from bps.mv(mono.linear.velocity, 0.2)
+    yield from bps.mv(mono.linear.velocity, 0.1)
     #yield from bps.sleep(0.1)
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     #@bpp.baseline_decorator([mono, xy_stage])
@@ -101,27 +113,64 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
 
 
         yield from bps.checkpoint()
-        return (yield from list_scan(
-            [sclr, xs],
-            mono.linear,
-            ept_linear,
-            md={
-                "scan_title": scan_title,
-                "operator": operator,
-                "element": element,
-                "user_input": {
+
+        if detector == "xs":
+
+            set_xs_roi(element=element, edge=edge, chanel=1)
+
+            return (yield from list_scan(
+                [sclr, xs],
+                mono.linear,
+                ept_linear,
+                md={
+                    "scan_title": scan_title,
+                    "operator": operator,
                     "element": element,
-                    "E_sections": E_sections,
-                    "dwell_time": dwell_time,
-                    "step_size": step_size,
-                },
-                "derived_input": {
-                    "x":xy_stage.x.position,
-                    "y":xy_stage.y.position,
-                    "z":xy_stage.z.position,
-                   # "Monochromator": Si(111)
-                },
-            }))
+                    "user_input": {
+                        "element": element,
+                        "edge":edge,
+                        "E_sections": E_sections,
+                        "dwell_time": dwell_time,
+                        "step_size": step_size,
+                    },
+                    "derived_input": {
+                        "x": xy_stage.x.position,
+                        "y": xy_stage.y.position,
+                        "z": xy_stage.z.position,
+                        # "Monochromator": Si(111)
+                    },
+                }))
+        elif detector == "xssmart":
+
+            set_xssmart_roi(element=element, edge=edge, chanel=1)
+            set_xssmart_roi(element=element, edge=edge, chanel=2)
+            set_xssmart_roi(element=element, edge=edge, chanel=3)
+            set_xssmart_roi(element=element, edge=edge, chanel=4)
+
+            return (yield from list_scan(
+                [sclr, xssmart],
+                mono.linear,
+                ept_linear,
+                md={
+                    "scan_title": scan_title,
+                    "operator": operator,
+                    "element": element,
+                    "user_input": {
+                        "element": element,
+                        "E_sections": E_sections,
+                        "dwell_time": dwell_time,
+                        "step_size": step_size,
+                    },
+                    "derived_input": {
+                        "x":sample_smart.x.position,
+                        "y":sample_smart.y.position,
+                        "z":sample_smart.z.position,
+                        "ry": sample_smart.ry.position,
+                       # "Monochromator": Si(111)
+                    },
+                }))
+        else:
+            print("Detector not defined")
         #, LivePlot('sclr', 'mono_linear'))
         #yield from bps.mv(mono.linear.velocity, 0.1)
 
@@ -131,7 +180,12 @@ def E_Step_Scan(scan_title, *, operator, element, dwell_time=3, E_sections, step
 
 
         yield from scan_once()
-        yield from export_E_step(-1,scan_iter)
+        if detector == "xs":
+            yield from export_E_step(-1,scan_iter)
+        elif detector == "xssmart":
+            yield from export_Esmart_step(-1, scan_iter)
+        else:
+            print("Detector not defined")
 
 
 """
@@ -288,7 +342,7 @@ def xy_step(
     #    ax=fig.gca(),
     #)
 
-    flyspeed = 1  # this is in mm/s
+    flyspeed = 0.1  # this is in mm/s
 
     try:
         xy_fly_stage.x.velocity.check_value(flyspeed)

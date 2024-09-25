@@ -1,4 +1,6 @@
 
+print(f"Loading {__file__!r} ...")
+
 from bluesky.plans import list_scan
 from bluesky.plan_stubs import abs_set
 

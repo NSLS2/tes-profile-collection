@@ -1,3 +1,6 @@
+print(f"Loading {__file__!r} ...")
+
+
 """
 This file came from https://github.com/NSLS-II-HXN/flyer_profile/blob/master/startup/10-detectors.py
 with minor modifications of the PV names and cam names.

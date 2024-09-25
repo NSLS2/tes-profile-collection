@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import os
 from bluesky.plans import count
 from bluesky.plan_stubs import abs_set

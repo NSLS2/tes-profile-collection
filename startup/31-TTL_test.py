@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import datetime
 import os.path
 import pprint

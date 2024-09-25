@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 from datetime import date
 from functools import partial
 import os.path

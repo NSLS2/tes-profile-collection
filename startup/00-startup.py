@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import logging
 import os
 from pathlib import Path

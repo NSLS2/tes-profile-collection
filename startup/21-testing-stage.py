@@ -1,3 +1,5 @@
+print(f"Loading {__file__!r} ...")
+
 import matplotlib.pyplot as plt
 import numpy as np
 from random import random, uniform

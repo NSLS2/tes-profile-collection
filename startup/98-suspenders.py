@@ -1,4 +1,4 @@
-
+print(f"Loading {__file__!r} ...")
 
 from bluesky.suspenders import SuspendFloor, SuspendBoolHigh, SuspendCeil
 import bluesky.plan_stubs as bps
@@ -34,21 +34,21 @@ RE.install_suspender(sus_abs_low)
 RE.install_suspender(sus_abs_hi)
 
 '''
-
+'''
 ############################
 
 ring_suspender = SuspendFloor(ring_current, 50, resume_thresh=399, sleep=60)
 #                              post_plan=beamline_align_suspenders)
 # ring_current, 50, resume_thresh=399, sleep=60
 
-solenoid_v_suspenderCeil = SuspendCeil(solenoid_v, 0.3, resume_thresh = 0.05, sleep = 10,
+solenoid_v_suspenderCeil = SuspendCeil(solenoid_v, 0.3, resume_thresh = 0.1, sleep = 2,
                                        #post_plan = mono_tilt
                                        )
-solenoid_v_suspenderFloor = SuspendFloor(solenoid_v, -0.3, resume_thresh = -0.05, sleep = 10,
+solenoid_v_suspenderFloor = SuspendFloor(solenoid_v, -0.3, resume_thresh = -0.1, sleep = 2,
                                        #post_plan = mono_tilt
                                        )
 
-I0_suspenderFloor = SuspendFloor(I0, 0.015, resume_thresh= 0.04, sleep = 2)
+I0_suspenderFloor = SuspendFloor(I0, 0.01, resume_thresh= 0.03, sleep = 2)
 RE.install_suspender(ring_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
@@ -65,7 +65,7 @@ for s in RE.suspenders:
 
 #####################################
 
-
+'''
 '''
 
 def mono_tilt():
