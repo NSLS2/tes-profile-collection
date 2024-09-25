@@ -544,9 +544,9 @@ def E_fly(
             # go to start of row
 
             yield from bps.checkpoint()
-            yield from bps.mv(mono.linear.velocity, 0.1)
+            yield from bps.mv(mono.linear.velocity, 0.15)
             yield from bps.mv(mono.linear, l_start)
-
+            yield from bps.sleep(0.2)
             # set the fly speed
             yield from bps.mv(mono.linear.velocity, flyspeed)
 
@@ -582,10 +582,12 @@ def E_fly(
                 yield from bps.read(xspress3)
 
             yield from bps.save()
-            yield from bps.mv(mono.linear.velocity, 0.3)
+            yield from bps.mv(mono.linear.velocity, 0.15)
+            yield from bps.sleep(0.2)
 
         for scan_iter in range(num_scans):
-            yield from bps.mv(mono.linear.velocity, 0.3)
+            #yield from bps.mv(mono.linear.velocity, 0.3)
+            print(num_scans)
             if xspress3 is not None:
                 yield from bps.mv(xspress3.fly_next, True)
             yield from fly_once(scan_iter)

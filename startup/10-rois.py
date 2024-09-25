@@ -1,6 +1,8 @@
 print(f"Loading {__file__!r} ...")
 
-import matplotlib.pyplot as pp
+
+# Element Format: element_edge, lower case only!!!
+# Data in (): (roi low bin, rio width, absorption edge energy in eV)
 
 element_to_roi = {
     "au": (202, 220),
@@ -9,7 +11,6 @@ element_to_roi = {
     "cd": (310,323),
     "cl": (256, 270),
     "k": (325, 345),
-    "s": (224, 240),
     "i": (388,403),
     "sn":(339,353),
     "p": (196, 208),
@@ -19,7 +20,7 @@ element_to_roi = {
     "pb": (228,242),
     "pd": (274, 292),
     "pt":(197,214),
-    "ru": (240, 280),
+    "ru_l3": (256, 16),
     "rh_l3l2":(262, 290),
     "rh":(262, 278),
     "pd-2": (275, 295),
@@ -34,21 +35,61 @@ element_to_roi = {
     "zr": (190, 225),
     "zr_sahiner": (195, 225),
     "ag": (293, 307),
+    "s": (224, 12),
     "sb": (356,372),
     "te":(372,386),
     "w":(200,218),
 }
 
-element_to_enery = {
-    "s": (2472),
+# Element Format: element_edge, lower case only!!!
+# Data in (): (roi low bin, rio width, absorption edge energy in eV)
+element_to_roi_smart = {
+    "au_l3": (202, 220),
+    "ba":(1,1),
+    "ca": (364, 380),
+    "cd": (310,323),
+    "cl": (256, 270),
+    "k": (325, 345),
+    "i": (388,403),
+
+    "p": (196, 208),
+    "al": (160,182),
+    "nb":(211,221),
+    "mo": (224,238),
+    "pb": (228,242),
+    "pd": (274, 292),
+    "pt":(197,214),
+    "ru_l3": (256, 16),
+    "rh_l3l2":(262, 290),
+    "rh":(262, 278),
+    "pd-2": (275, 295),
+    "u": (310, 325),
+    "ir":(190,206),
+    "in":(324,340),
+
+    "ti":(447,461),
+    "ti_kb":(490,502),
+    "ta":(188,193),
+    "y_croft": (170, 205),
+    "zr": (190, 225),
+    "zr_sahiner": (195, 225),
+    "ag": (293, 307),
+    "s_k": (224, 12, 2472),
+    "sc_k": (401, 417),
+    "sn_l3": (339, 353),
+    "sb": (356,372),
+    "te":(372,386),
+    "w":(200,218),
 }
-
-def set_rois(element):
-    roi = rois(element)
+# Format: element_edge, lower case only!!!
 
 
-def rois(element):
-    return element_to_roi[element.lower()]
+#def set_rois(element):
+#    roi = rois(element)
+
+
+#def rois(element):
+#    return element_to_roi[element.lower()]
 
     # if element == 's':
     #    roi = [221, 239]

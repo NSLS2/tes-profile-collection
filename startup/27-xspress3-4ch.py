@@ -65,12 +65,12 @@ class Xspress3FileStoreFlyable(Xspress3FileStore):
 
     @property
     def filestore_spec(self):
-        # Both "XPS3_FLY" and "XSP3_FLY" point to the same 
+        # Both "XPS3_FLY" and "XSP3_FLY" point to the same
         # reader in area-detector handers. "XPS" seems like it
         # originated as a typo, but we'll leave it for consistency
         # of documents through time until / unless we do a migration
         # to "fix" the old documents in the database.
-       return 'XPS3_FLY'
+        return 'XPS3_FLY'
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         if self.parent._mode is TESMode.step:
@@ -169,16 +169,17 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
     roi_data = Cpt(PluginBase, "ROIDATA:")
 
     # Currently only using three channels. Uncomment these to enable more
-    #revised on 2/17/21#revised for ch1&2 xs 3/8/21
+    # revised on 2/17/21#revised for ch1&2 xs 3/8/21
     channel1 = C(Xspress3Channel, "C1_", channel_num=1, read_attrs=["rois"])
-    #channel2 = C(Xspress3Channel, "C2_", channel_num=2, read_attrs=["rois"])
-    # channels:
-    # channel3 = C(Xspress3Channel, 'C3_', channel_num=3, read_attrs=['rois'])
-    # channel4 = C(Xspress3Channel, 'C4_', channel_num=4)
+    channel2 = C(Xspress3Channel, "C2_", channel_num=2, read_attrs=["rois"])
+    channel3 = C(Xspress3Channel, 'C3_', channel_num=3, read_attrs=['rois'])
+    channel4 = C(Xspress3Channel, 'C4_', channel_num=4, read_attrs=['rois'])
     # channel5 = C(Xspress3Channel, 'C5_', channel_num=5)
     # channel6 = C(Xspress3Channel, 'C6_', channel_num=6)
     # channel7 = C(Xspress3Channel, 'C7_', channel_num=7)
     # channel8 = C(Xspress3Channel, 'C8_', channel_num=8)
+
+
 
     hdf5 = Cpt(
         Xspress3FileStoreFlyable,
@@ -186,14 +187,14 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
         read_path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d/",
         write_path_template="/DATA/%Y/%m/%d/",
         root="/nsls2/data/tes/legacy/raw/",
-        #read_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
-        #write_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
-        #root="/nsls2/data/tes/assets/",
-        #read_path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d/",
-        #write_path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d/",
-        #root="/nsls2/data/tes/legacy/raw/",
-        #read_path_template="/tmp",
-        #write_path_template="/tmp",
+        # read_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
+        # write_path_template="/nsls2/data/tes/assets/xspress3/%Y/%m/%d/",
+        # root="/nsls2/data/tes/assets/",
+        # read_path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d/",
+        # write_path_template="/nsls2/data/tes/legacy/raw/xspress3/%Y/%m/%d/",
+        # root="/nsls2/data/tes/legacy/raw/",
+        # read_path_template="/tmp",
+        # write_path_template="/tmp",
     )
 
     # this is used as a latch to put the xspress3 into 'bulk' mode
@@ -213,9 +214,9 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
                 "rewindable",
             ]
         if read_attrs is None:
-            #revised for ch1&2 xs 3/8/21
-            #read_attrs = ["channel1", "channel2", "hdf5"]
-            read_attrs = ["channel1", "hdf5"]
+            # revised for ch1&2 xs 3/8/21
+            # read_attrs = ["channel1", "channel2", "hdf5"]
+            read_attrs = ["channel1", "channel2", "channel3", "channel4", "hdf5"]
         super().__init__(
             prefix,
             configuration_attrs=configuration_attrs,
@@ -250,7 +251,9 @@ class TESXspress3Detector(TESXspressTrigger, Xspress3Detector):
             self._mode = TESMode.step
         return ret
 
-#revised for ch1&2 xs 3/8/21
+
+# revised for ch1&2 xs 3/8/21
+
 # _xs = TESXspress3Detector("XF:08BM-ES{Xsp:1}:", name="xs")
 # _xs.channel1.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
 # #_xs.channel2.rois.read_attrs = ["roi{:02}".format(j) for j in [1, 2, 3, 4]]
@@ -295,23 +298,22 @@ from nslsii.areadetector.xspress3 import (
     Xspress3Trigger
 )
 
-
 # jlynch: debugging
 # class NewXspress3Trigger(Xspress3Trigger):
 #     def trigger(self):
-        
+
 #         self.cam.acquire.put(0, wait=True)
 #         return super().trigger()
 
-# The Xspress3 Mini at TES has 2 channels but 
+# The Xspress3 Mini at TES has 2 channels but
 # as of 2023-05-08 only channel 1 is in use
 # so this class only defines channel 1. If the
-# second channel is put in use change 
+# second channel is put in use change
 #   channel_numbers=(1,)
-# to 
+# to
 #   channel_nubmers=(1, 2)
 xspress3_mini_class = build_xspress3_class(
-    channel_numbers=(1,),
+    channel_numbers=(1,2,3,4),
     mcaroi_numbers=(1, 2, 3, 4),
     image_data_key="fluor",
     xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
@@ -349,7 +351,7 @@ class TESXspress3Detector(xspress3_mini_class):
             # E step scan
             # read_attrs = ["channel01", "hdf5"]
             # xy flyscan
-            read_attrs = ["fluor", "channel01", "hdf5"]
+            read_attrs = ["fluor", "channel01", "channel02", "channel03", "channel04", "hdf5"]
 
         super().__init__(
             prefix,
@@ -371,7 +373,7 @@ class TESXspress3Detector(xspress3_mini_class):
         return stop_result
 
     def stage(self):
-        #print("starting stage")
+        # print("starting stage")
         # do the latching
         if self.fly_next.get():
             print("put False to fly_next")
@@ -379,12 +381,12 @@ class TESXspress3Detector(xspress3_mini_class):
             self._mode = TESMode.fly
 
         if self.external_trig.get():
-            #print("setting TTL Veto Only trigger mode")
+            # print("setting TTL Veto Only trigger mode")
             self.stage_sigs = {
                 self.cam.trigger_mode: "TTL Veto Only"
             }
         else:
-            #print("setting Internal trigger mode")
+            # print("setting Internal trigger mode")
             self.stage_sigs = {
                 self.cam.trigger_mode: "Internal"
             }
@@ -402,37 +404,37 @@ class TESXspress3Detector(xspress3_mini_class):
             self._mode = TESMode.step
         return unstage_result
 
-xs = TESXspress3Detector(prefix="XF:08BM-ES{Xsp:2}:", name="xs")
+
+xssmart = TESXspress3Detector(prefix="XF:08BM-ES{XS3:Det-3}:", name="xssmart")
 
 # jlynch: SRX does this
-xs.hdf5.stage_sigs[xs.hdf5.blocking_callbacks] = 1
+xssmart.hdf5.stage_sigs[xssmart.hdf5.blocking_callbacks] = 1
 
-xs.energy_calibration.kind = "config"
+xssmart.energy_calibration.kind = "config"
 
-xs.fluor.name = "fluor"
-xs.fluor.kind = Kind.normal  # this is for xy flyscan only
-for channel in xs.iterate_channels():
-    #channel.kind = "normal" this is for e step scan only
-    #channel.fluor.shape = (1, 1, 4096)
+xssmart.fluor.name = "fluor"
+xssmart.fluor.kind = Kind.normal  # this is for xy flyscan only
+for channel in xssmart.iterate_channels():
+    # channel.kind = "normal" this is for e step scan only
+    # channel.fluor.shape = (1, 1, 4096)
     for mcaroi in channel.iterate_mcarois():
         # "normal" may be ok as well
         mcaroi.kind = Kind.hinted
         mcaroi.total_rbv.kind = Kind.hinted
 
-def set_xs_roi(element, edge, chanel, *, roi = 1, low_bin=None, size=None):
+
+def set_xssmart_roi(element, edge, chanel, *, roi=1, low_bin=None, size=None):
 
     element = element+"_"+edge
-    xs_roi_low = EpicsSignal("XF:08BM-ES{XSp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":MinX", name = "xs_roi_low")
-    xs_roi_high = EpicsSignal("XF:08BM-ES{XSp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":SizeX", name = "xs_roi_high")
-    xs_roi_name = EpicsSignal("XF:08BM-ES{XSp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":Name", name = "xs_roi_name")
+    xssmart_roi_low = EpicsSignal("XF:08BM-ES{XS3:Det-3}:MCA"+str(chanel)+"ROI:"+str(roi)+":MinX", name = "xssmart_roi_low")
+    xssmart_roi_high = EpicsSignal("XF:08BM-ES{XS3:Det-3}:MCA"+str(chanel)+"ROI:"+str(roi)+":SizeX", name = "xssmart_roi_high")
+    xssmart_roi_name = EpicsSignal("XF:08BM-ES{XS3:Det-3}:MCA"+str(chanel)+"ROI:"+str(roi)+":Name", name = "xssmart_roi_name")
     if low_bin == None or size == None:
-        low_bin = element_to_roi[element.lower()][0]
-        size = element_to_roi[element.lower()][1]
-
-    xs_roi_name.put(element)
-    xs_roi_low.put(low_bin)
-    xs_roi_high.put(size)
-
+        low_bin = element_to_roi_smart[element.lower()][0]
+        size = element_to_roi_smart[element.lower()][1]
+    xssmart_roi_name.put(element)
+    xssmart_roi_low.put(low_bin)
+    xssmart_roi_high.put(size)
 
 
 # is this necessary?
@@ -441,7 +443,7 @@ def set_xs_roi(element, edge, chanel, *, roi = 1, low_bin=None, size=None):
 # xs.channel1.vis_enabled.put(1)
 # xs.cam.num_channels.put(1)
 
-xs.cam.configuration_attrs = [
+xssmart.cam.configuration_attrs = [
     "acquire_period",
     "acquire_time",
     "image_mode",
@@ -462,6 +464,7 @@ xs.cam.configuration_attrs = [
     "run_flags",
     "trigger_signal",
 ]
+
 
 class BulkXspress3Handler(HandlerBase):
     HANDLER_NAME = "BULK_XSPRESS3"

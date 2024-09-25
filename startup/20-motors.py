@@ -30,9 +30,9 @@ class Mono(Device):
 
 
 mono = Mono(name="mono")
-mono.energy.settle_time = 2.5
-mono.linear.settle_time = 2.5
-#mono.settle_time = 4.5
+#mono.energy.settle_time = 3
+#mono.linear.settle_time = 3
+mono.settle_time = 1
 
 dtt = EpicsSignal("XF:08BM-CT{MC:06}Asyn.AOUT", name="dtt", string=True)
 
@@ -45,11 +45,11 @@ class ToroidalMirror(Device):
 
 
 toroidal_mirror = ToroidalMirror("XF:08BMA-OP{Mir:FM-Ax:", name="toroidal_mirror")
-toroidal_mirror.kind = "hinted"
-toroidal_mirror.dsy.kind = "hinted"
-toroidal_mirror.usy.kind = "hinted"
-toroidal_mirror.dsh.kind = "hinted"
-toroidal_mirror.ush.kind = "hinted"
+#toroidal_mirror.kind = "hinted"
+#toroidal_mirror.dsy.kind = "hinted"
+#toroidal_mirror.usy.kind = "hinted"
+#toroidal_mirror.dsh.kind = "hinted"
+#toroidal_mirror.ush.kind = "hinted"
 
 
 class SSA(Device):
@@ -86,3 +86,37 @@ class KBMirror(Device):
 
 kbh = KBMirror("XF:08BMES-OP{Mir:KBH-Ax:", name="kbh")
 kbv = KBMirror("XF:08BMES-OP{Mir:KBV-Ax:", name="kbv")
+
+
+class Robot_Smart(Device):
+    x = Cpt(EpicsMotor, "X}Mtr")
+    y = Cpt(EpicsMotor, "Y}Mtr")
+    z = Cpt(EpicsMotor, "Z}Mtr")
+    ry = Cpt(EpicsMotor, "Ry}Mtr")
+
+robot_smart = Robot_Smart("XF:08BMC-ES:SE{SmplM:1-Ax:", name = "robot_smart")
+
+
+robot_x_home = EpicsSignal("XF:08BMC-ES:SE{SmplM:1-Ax:X}Sts:HomeCmplt-Sts", name="robot_x_home")
+robot_y_home = EpicsSignal("XF:08BMC-ES:SE{SmplM:1-Ax:Y}Sts:HomeCmplt-Sts", name="robot_y_home")
+robot_z_home = EpicsSignal("XF:08BMC-ES:SE{SmplM:1-Ax:Z}Sts:HomeCmplt-Sts", name="robot_z_home")
+robot_ry_home = EpicsSignal("XF:08BMC-ES:SE{SmplM:1-Ax:Ry}Sts:HomeCmplt-Sts", name="robot_ry_home")
+
+class Sample_Smart(Device):
+    x = Cpt(EpicsMotor, "X}Mtr")
+    y = Cpt(EpicsMotor, "Y}Mtr")
+    z = Cpt(EpicsMotor, "Z}Mtr")
+    ry = Cpt(EpicsMotor, "Ry}Mtr")
+
+sample_smart = Sample_Smart("XF:08BMC-ES:SE{Smpl:1-Ax:", name = "sample_smart")
+sample_x_home = EpicsSignal("XF:08BMC-ES:SE{Smpl:1-Ax:X}Sts:HomeCmplt-Sts", name="sample_x_home")
+sample_y_home = EpicsSignal("XF:08BMC-ES:SE{Smpl:1-Ax:Y}Sts:HomeCmplt-Sts", name="sample_y_home")
+sample_z_home = EpicsSignal("XF:08BMC-ES:SE{Smpl:1-Ax:Z}Sts:HomeCmplt-Sts", name="sample_z_home")
+sample_ry_home = EpicsSignal("XF:08BMC-ES:SE{Smpl:1-Ax:Ry}Sts:HomeCmplt-Sts", name="sample_ry_home")
+
+class SDD_Smart(Device):
+    x = Cpt(EpicsMotor, "X}Mtr")
+SDD_smart = SDD_Smart("XF:08BMC-ES:SE{Det:1-Ax:", name = "SDD_smart")
+SDD_smart_home = EpicsSignal("XF:08BMC-ES:SE{Det:1-Ax:X}Sts:HomeCmplt-Sts", name="sample_ry_home")
+
+
