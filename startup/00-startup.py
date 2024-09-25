@@ -9,6 +9,8 @@ from bluesky.utils import PersistentDict
 from IPython import get_ipython
 from nslsii import configure_base
 from ophyd.signal import EpicsSignalBase
+import redis
+from redis_json_dict import RedisJSONDict
 
 EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)
 
@@ -21,9 +23,7 @@ configure_base(get_ipython().user_ns,
 # runengine_metadata_dir = Path('/nsls2/xf08bm/shared/config/runengine-metadata')
 runengine_metadata_dir = Path("/nsls2/data/tes/shared/config/runengine-metadata")
 
-# PersistentDict will create the directory if it does not exist
-RE.md = PersistentDict(runengine_metadata_dir)
-
+RE.md = RedisJSONDict(redis.Redis("info.tes.nsls2.bnl.gov"), prefix="")
 
 # Optional: set any metadata that rarely changes.
 RE.md["beamline_id"] = "TES"
