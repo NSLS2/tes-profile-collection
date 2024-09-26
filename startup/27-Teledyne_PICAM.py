@@ -69,6 +69,7 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
     
     def _update_paths(self):
         self.write_path_template = self.root_path_str
+        self.read_path_template = self.root_path_str
         #self.path_template.put(self.path_template_str)
 
     @property
