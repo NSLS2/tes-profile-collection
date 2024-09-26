@@ -1,8 +1,10 @@
 print(f"Loading {__file__!r} ...")
 
 import os
+from uuid import uuid4
 import h5py
 
+from event_model import compose_resource
 from ophyd.areadetector import (
     AreaDetector,
     PixiradDetectorCam,
@@ -40,7 +42,7 @@ from nslsii.detectors.xspress3 import (
     logger,
 )
 from enum import Enum
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from ophyd import Staged
 from ophyd.status import DeviceStatus
 
@@ -219,7 +221,7 @@ class TESXspress3Detector4CH(xspress3_class_4ch):
     
 
 xspress3_class_1ch = build_xspress3_class(
-    channel_numbers=(1),
+    channel_numbers=(1,),
     mcaroi_numbers=(1, 2, 3, 4),
     image_data_key="fluor",
     xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
@@ -229,7 +231,7 @@ xspress3_class_1ch = build_xspress3_class(
             "HDF1:",
             md=RE.md,
             name="hdf5",
-            root_path=f"/nsls2/data/tes/proposals/{RE.md.get('cycle', '')}/{RE.md.get('data_session', '')}/assets/",
+            root_path=f"/nsls2/data/tes/proposals/{RE.md.get('cycle', '')}/{RE.md.get('data_session', '')}/assets",
             path_template="%Y/%m/%d",
         )
     }
@@ -257,7 +259,7 @@ class TESXspress3Detector1CH(xspress3_class_1ch):
             # E step scan
             # read_attrs = ["channel01", "hdf5"]
             # xy flyscan
-            read_attrs = ["fluor", "channel01", "channel02", "channel03", "channel04", "hdf5"]
+            read_attrs = ["fluor", "channel01", "hdf5"]
 
         super().__init__(
             prefix,
@@ -366,7 +368,7 @@ def tes_xs3_factory(prefix, name, num_channels = 4):
 
     return xspress3
 
-xs = tes_xs3_factory(prefix="XF:08BM-ES{Xsp:2}:", name="xs")
+xs = tes_xs3_factory(prefix="XF:08BM-ES{Xsp:2}:", name="xs", num_channels=1)
 xssmart = tes_xs3_factory(prefix="XF:08BM-ES{XS3:Det-3}:", name="xssmart")
 
 

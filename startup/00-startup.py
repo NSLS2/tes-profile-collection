@@ -22,6 +22,8 @@ configure_base(get_ipython().user_ns,
 
 RE.unsubscribe(0)  # Remove old-style databroker saving.# Define tiled catalog
 tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_WRITING_API_KEY_TES"])["tes"]["raw"]
+
+print("Intializing tiled reading client...\nMake sure you check for duo push.")
 tiled_reading_client = from_profile("nsls2")["tes"]["raw"]
 
 
