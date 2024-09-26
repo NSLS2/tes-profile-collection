@@ -1,4 +1,4 @@
-print(ttime.ctime() + ' >>>> ' + __file__)
+# print(ttime.ctime() + ' >>>> ' + __file__)
 import time as ttime  # tea time
 from collections import OrderedDict
 from types import SimpleNamespace
@@ -49,7 +49,9 @@ class TIFFPluginWithFileStore(TIFFPlugin, FileStoreTIFFIterativeWrite):
 
 
 class HDF5PluginWithFileStoreBase(HDF5Plugin, FileStoreHDF5IterativeWrite):
-    ...
+    def __init__(self, *args, md=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.md = md
 
 
 class HDF5PluginWithFileStoreBaseRGB(HDF5PluginWithFileStoreBase):
@@ -64,6 +66,20 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
     def __init__(self, *args, md = None, **kwargs):
         super().__init__(*args, **kwargs)
         self._md = md
+    def _update_paths(self):
+        self.root_path.put(self.root_path_str)
+        self.path_template.put(self.path_template_str)
+
+    @property
+    def root_path_str(self):
+        root_path = f"/nsls2/data/tes/proposals/{self._md['cycle']}/{self._md['data_session']}/assets/picam/"
+        return root_path
+
+    @property
+    def path_template_str(self):
+        path_template = "%Y/%m/%d"
+        return path_template
+
 
     def warmup(self):
         '''
@@ -108,6 +124,7 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
 
     def stage(self):
         super().stage()
+        self._update_paths()
         set_and_wait(self.enable, 1)
         sigs = OrderedDict([(self.parent.cam.array_callbacks, 1),
                             (self.parent.cam.image_mode, 'Single'),
@@ -168,8 +185,8 @@ class StandardPICam(SingleTriggerV33, PICamDetectorV33):
 class StandardPICamWithHDF5(StandardPICam):
     hdf5 = Cpt(HDF5PluginWithFileStorePICam,
                suffix='HDF1:',
-               write_path_template="/tmp",
-               root='/home/xf08bm/Users/Data/TES/raw/')
+               root_path=None,
+               path_template=None)
 
 # This camera is the default one (with the HDF5 plugin):
  #picam = None
@@ -177,10 +194,10 @@ picam = StandardPICamWithHDF5('XF:08BM-ES{Det:PICAM1}', name='picam')
 
 
 if picam is not None:
-    picam.hdf5.write_path_template = "/home/xf08bm/Users/Data/TES/raw/picam/hdf5/%Y/%m/%d/"
+    # picam.hdf5.write_path_template = "/home/xf08bm/Users/Data/TES/raw/picam/hdf5/%Y/%m/%d/"
 
      # TODO: do it conditionally when running the code at the beamline only.
-    picam.hdf5.create_directory.put(-3)
+    # picam.hdf5.create_directory.put(-3)
 
     picam.cam.ensure_nonblocking()
     for camera in [picam]:
