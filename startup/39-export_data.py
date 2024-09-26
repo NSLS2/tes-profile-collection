@@ -8,7 +8,8 @@ import time
 
 
 def export_xy_fly(scanID = -1):
-    start = db[scanID].start
+    run = tiled_reading_client[scanID]
+    start = run.start
     dt = datetime.datetime.fromtimestamp(start["time"])
     filepath = os.path.expanduser(
         f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"

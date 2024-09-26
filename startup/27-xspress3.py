@@ -389,9 +389,9 @@ def set_xssmart_roi(element, edge, chanel, *, roi=1, low_bin=None, size=None):
 def set_xs_roi(element, edge, chanel, *, roi = 1, low_bin=None, size=None):
 
     element = element+"_"+edge
-    xs_roi_low = EpicsSignal("XF:08BM-ES{XSp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":MinX", name = "xs_roi_low")
-    xs_roi_high = EpicsSignal("XF:08BM-ES{XSp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":SizeX", name = "xs_roi_high")
-    xs_roi_name = EpicsSignal("XF:08BM-ES{XSp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":Name", name = "xs_roi_name")
+    xs_roi_low = EpicsSignal("XF:08BM-ES{Xsp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":MinX", name = "xs_roi_low")
+    xs_roi_high = EpicsSignal("XF:08BM-ES{Xsp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":SizeX", name = "xs_roi_high")
+    xs_roi_name = EpicsSignal("XF:08BM-ES{Xsp:2}:MCA"+str(chanel)+"ROI:"+str(roi)+":Name", name = "xs_roi_name")
     if low_bin == None or size == None:
         low_bin = element_to_roi[element.lower()][0]
         size = element_to_roi[element.lower()][1]
