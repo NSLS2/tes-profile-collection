@@ -66,19 +66,20 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
     def __init__(self, *args, md = None, **kwargs):
         super().__init__(*args, **kwargs)
         self._md = md
+    
     def _update_paths(self):
-        self.root_path.put(self.root_path_str)
-        self.path_template.put(self.path_template_str)
+        self.write_path_template = self.root_path_str
+        #self.path_template.put(self.path_template_str)
 
     @property
     def root_path_str(self):
         root_path = f"/nsls2/data/tes/proposals/{self._md['cycle']}/{self._md['data_session']}/assets/picam/"
         return root_path
 
-    @property
-    def path_template_str(self):
-        path_template = "%Y/%m/%d"
-        return path_template
+    #@property
+    #def path_template_str(self):
+    #    path_template = "%Y/%m/%d"
+    #    return path_template
 
 
     def warmup(self):
@@ -185,8 +186,10 @@ class StandardPICam(SingleTriggerV33, PICamDetectorV33):
 class StandardPICamWithHDF5(StandardPICam):
     hdf5 = Cpt(HDF5PluginWithFileStorePICam,
                suffix='HDF1:',
-               root_path=None,
-               path_template=None)
+               md = RE.md,
+               read_path_template=f"/nsls2/data/tes/proposals/{RE.md['cycle']}/{RE.md['data_session']}/assets/picam/%Y/%m/%d",
+               write_path_template=f"/nsls2/data/tes/proposals/{RE.md['cycle']}/{RE.md['data_session']}/assets/picam/%Y/%m/%d",
+               )
 
 # This camera is the default one (with the HDF5 plugin):
  #picam = None
@@ -248,4 +251,4 @@ if picam is not None:
             else:
                 print(f"\n  Warming up of the HDF5 plugin is not needed for {det.name} as the array_size={_array_size}.")
 
-        warmup_hdf5_plugins([picam])
+    warmup_hdf5_plugins([picam])
