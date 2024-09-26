@@ -20,6 +20,8 @@ from ophyd.utils import set_and_wait
 from pathlib import PurePath
 from bluesky.plan_stubs import stage, unstage, open_run, close_run, trigger_and_read, pause
 from nslsii.ad33 import SingleTriggerV33, StatsPluginV33
+
+
 class PICamDetectorCamV33(PICamDetectorCam):
     wait_for_plugins = Cpt(EpicsSignal, 'WaitForPlugins',
                            string=True, kind='config')
@@ -61,19 +63,23 @@ class HDF5PluginWithFileStoreBaseRGB(HDF5PluginWithFileStoreBase):
 class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
     """Add this as a component to detectors that write HDF5s."""
 
+    def __init__(self, *args, md = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._md = md
     def _update_paths(self):
         self.root_path.put(self.root_path_str)
         self.path_template.put(self.path_template_str)
 
     @property
     def root_path_str(self):
-        root_path = f"/nsls2/data/tes/proposals/{self.md['cycle']}/{self.md['data_session']}/assets/picam/"
+        root_path = f"/nsls2/data/tes/proposals/{self._md['cycle']}/{self._md['data_session']}/assets/picam/"
         return root_path
 
     @property
     def path_template_str(self):
         path_template = "%Y/%m/%d"
         return path_template
+
 
     def warmup(self):
         '''
