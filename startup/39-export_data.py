@@ -26,6 +26,7 @@ def export_xy_fly(scanID = -1):
     with open(filepath, "wt") as output_file:
         output_file.write(pprint.pformat(start))
 
+
 def export_E_fly(scanID=-1):
     run = tiled_reading_client[scanID]
     start = run.start
@@ -36,11 +37,11 @@ def export_E_fly(scanID=-1):
     If = np.sum(d[:, :, :, roi[0]:roi[1]], axis=-1)
     
     primary_data = run['primary']['data']
-    I_TEY = primary_data['fbratio'].read()
-    E = run['energy_bins']['data']['E_centers'].read()
-    I0 = primary_data['I0'].read()
+    I_TEY = primary_data['fbratio'].read()[0]
+    E = run['energy_bins']['data']['E_centers'].read()[0]
+    I0 = primary_data['I0'].read()[0]
     #I_sclr_S = primary_data['S']
-    Dwell_time = primary_data['dwell_time'].read()
+    Dwell_time = primary_data['dwell_time'].read()[0]
     
     dt = datetime.datetime.fromtimestamp(start["time"])
 
