@@ -3,6 +3,8 @@ print(f"Loading {__file__!r} ...")
 import logging
 import os
 from pathlib import Path
+import time
+from tiled.client import from_profile
 
 import appdirs
 from bluesky.utils import PersistentDict
@@ -17,6 +19,29 @@ EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)
 configure_base(get_ipython().user_ns,
                "tes",
                publish_documents_with_kafka=True)
+
+RE.unsubscribe(0)  # Remove old-style databroker saving.# Define tiled catalog
+tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_WRITING_API_KEY_TES"])["tes"]["raw"]
+tiled_reading_client = from_profile("nsls2")["tes"]["raw"]
+
+
+def post_document(name, doc):
+    ATTEMPTS = 20
+    error = None
+    for attempt in range(ATTEMPTS):
+        try:
+            tiled_writing_client.post_document(name, doc)
+        except Exception as exc:
+            print("Document saving failure:", repr(exc))
+            error = exc
+        else:
+            break
+        time.sleep(2)
+    else:
+        # Out of attempts
+        raise error
+
+RE.subscribe(post_document)
 
 
 # runengine_metadata_dir = appdirs.user_data_dir(appname="bluesky") / Path("runengine-metadata")
@@ -63,3 +88,14 @@ def auto_alignment_mode(envvar="AUTOALIGNMENT", default="no"):
         return True
     else:
         return False
+
+
+def print_doc_to_stdout(name, doc):
+
+    print(f"\n================= Emitting {name} document =====================\n")
+    print(f"{doc}")
+    print(f"\n========================== Done ================================\n")
+
+
+# Uncomment to view raw document stream
+RE.subscribe(print_doc_to_stdout)
