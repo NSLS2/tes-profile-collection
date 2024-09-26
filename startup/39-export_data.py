@@ -27,17 +27,21 @@ def export_xy_fly(scanID = -1):
         output_file.write(pprint.pformat(start))
 
 def export_E_fly(scanID=-1):
-    h = db[scanID]
-    start = h.start
+    run = tiled_reading_client[scanID]
+    start = run.start
     element = start['user_input']['element']
     roi = rois(element)
-    d = np.array(list(h.data('fluor', stream_name='primary', fill=True)))
+    
+    d = run['primary']['data']['fluor'].read()
     If = np.sum(d[:, :, :, roi[0]:roi[1]], axis=-1)
-    I_TEY = h.table()['fbratio']
-    E = h.table('energy_bins')['E_centers'][1]
-    I0 = h.table()['I0']
-    I_sclr_S = h.table()['S']
-    Dwell_time = h.table()['dwell_time']
+    
+    primary_data = run['primary']['data']
+    I_TEY = primary_data['fbratio'].read()
+    E = run['energy_bins']['data']['E_centers'].read()
+    I0 = primary_data['I0'].read()
+    #I_sclr_S = primary_data['S']
+    Dwell_time = primary_data['dwell_time'].read()
+    
     dt = datetime.datetime.fromtimestamp(start["time"])
 
     file_head = {'beamline_id': 'TES/8-BM of NSLS-II',
@@ -58,7 +62,7 @@ def export_E_fly(scanID=-1):
                                'I0': I0[ii + 1],
                                'I_TEY':I_TEY[ii+1],
                                'If_CH1': If[ii, :, 0],
-                               'I_sclr_S': I_sclr_S[ii + 1]
+                               #'I_sclr_S': I_sclr_S[ii + 1]
                                })
         else:
             df = pd.DataFrame({'#Energy': E,
@@ -67,7 +71,7 @@ def export_E_fly(scanID=-1):
                                'I_TEY': I_TEY[ii + 1],
                                'If_CH1': If[ii, :, 0],
                                'If_CH2': If[ii, :, 1],
-                               'I_sclr_S': I_sclr_S[ii + 1]
+                               #'I_sclr_S': I_sclr_S[ii + 1]
                                })
 
         filepath = os.path.expanduser(

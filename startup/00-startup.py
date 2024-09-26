@@ -26,6 +26,13 @@ tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_W
 print("Intializing tiled reading client...\nMake sure you check for duo push.")
 tiled_reading_client = from_profile("nsls2")["tes"]["raw"]
 
+def logout():
+    """
+    This isn't working yet.
+    """
+    tiled_reading_client.logout()
+    from tiled.client.context import clear_default_identity
+    clear_default_identity(tiled_reading_client.uri)
 
 def post_document(name, doc):
     ATTEMPTS = 20

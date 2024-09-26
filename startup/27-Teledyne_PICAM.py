@@ -20,6 +20,8 @@ from ophyd.utils import set_and_wait
 from pathlib import PurePath
 from bluesky.plan_stubs import stage, unstage, open_run, close_run, trigger_and_read, pause
 from nslsii.ad33 import SingleTriggerV33, StatsPluginV33
+
+
 class PICamDetectorCamV33(PICamDetectorCam):
     wait_for_plugins = Cpt(EpicsSignal, 'WaitForPlugins',
                            string=True, kind='config')
@@ -58,6 +60,10 @@ class HDF5PluginWithFileStoreBaseRGB(HDF5PluginWithFileStoreBase):
 
 class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
     """Add this as a component to detectors that write HDF5s."""
+
+    def __init__(self, *args, md = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._md = md
 
     def warmup(self):
         '''

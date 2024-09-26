@@ -66,7 +66,7 @@ element_to_roi_smart = {
     "u": (310, 325),
     "ir":(190,206),
     "in":(324,340),
-
+    "pd_k":(256,12),
     "ti":(447,461),
     "ti_kb":(490,502),
     "ta":(188,193),
@@ -88,8 +88,8 @@ element_to_roi_smart = {
 #    roi = rois(element)
 
 
-#def rois(element):
-#    return element_to_roi[element.lower()]
+def rois(element):
+   return element_to_roi[element.lower()]
 
     # if element == 's':
     #    roi = [221, 239]
@@ -125,7 +125,7 @@ element_to_roi_smart = {
     #     roi = [195, 225]
     # else:
     #     roi = []
-    #
+    
     # return roi
 
 
