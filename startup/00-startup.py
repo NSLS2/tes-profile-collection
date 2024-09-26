@@ -28,11 +28,13 @@ tiled_reading_client = from_profile("nsls2")["tes"]["raw"]
 
 def logout():
     """
-    This isn't working yet.
+    Logout of tiled and reset the default username.
+    This is needed to switch between different users.
     """
+
     tiled_reading_client.logout()
     from tiled.client.context import clear_default_identity
-    clear_default_identity(tiled_reading_client.uri)
+    clear_default_identity(tiled_reading_client.context.api_uri)
 
 def post_document(name, doc):
     ATTEMPTS = 20
