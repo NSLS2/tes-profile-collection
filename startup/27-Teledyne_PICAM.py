@@ -67,7 +67,7 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
 
     @property
     def root_path_str(self):
-        root_path = f"/nsls2/data/tes/proposals/{self.md['cycle']}/{self.md['data_session']}/assets/{picam}/"
+        root_path = f"/nsls2/data/tes/proposals/{self.md['cycle']}/{self.md['data_session']}/assets/picam/"
         return root_path
 
     @property
