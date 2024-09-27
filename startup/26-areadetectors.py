@@ -268,4 +268,4 @@ class ADURLHDF5Handler(AreaDetectorHDF5Handler):
         return super().__call__(point_number)
 
 
-db.reg.register_handler("AD_HDF5_RGB", ADURLHDF5Handler, overwrite=True)
+#db.reg.register_handler("AD_HDF5_RGB", ADURLHDF5Handler, overwrite=True)

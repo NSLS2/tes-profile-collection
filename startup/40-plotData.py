@@ -12,20 +12,21 @@ def pltxas(scanID = -1, mode = 'TEY'):
     element = start['user_input']['element']
     plan_name = start['plan_name'],
     roi = rois(element)
-    I_TEY = h.table()['fbratio']
-    I0 = h.table()['I0']
+    I_TEY = h['primary']['data']['fbratio'].read()
+    I0 = h['primary']['data']['I0'].read()
     print(plan_name)
     if plan_name == 'Batch_E_fly':
-        d = np.array(list(h.data('fluor', stream_name='primary', fill=True)))
+        d = h['primary']['data']['fluor'].read()
         If = np.sum(d[:, :, :, roi[0]:roi[1]], axis=-1)
         E = h.table('energy_bins')['E_centers'][1]
 
     else:
-        E = h.table()['mono_energy']
-        I0 = h.table()['I0']
-        I_TEY = h.table()['fbratio']
-        # If = h.table()['xs_channel1_rois_roi01_value_sum']
-        If = h.table()['xs3_channel01_mcaroi01_total_rbv']
+        E = h['baseline']['data']['mono_energy'].read()
+        I0 = h['primary']['data']['I0'].read()
+        I_TEY = h['primary']['data']['fbratio'].read()
+        # If = h['primary']['data']['xs_channel1_rois_roi01_value_sum']
+        # TODO: This doesn't work yet. Need to update for tiled.
+        If = h['primary']['data']['xs3_channel01_mcaroi01_total_rbv'].read()
     print(E)
     print(If)
     if mode == 'fluo':
@@ -48,18 +49,18 @@ def pltstageX(scanID = -1, mode = 'fluo'):
     element = start['user_input']['element']
     plan_name = start['plan_name']
     roi = rois(element)
-    I0 = h.table()['IO']
+    I0 = h['primary']['data']['IO'].read()
 
     print(plan_name == 'X_step_scan')
     if plan_name == 'X_step_scan':
-        d = np.array(list(h.data('fluor', stream_name='primary', fill=True)))
+        d = h['primary']['data']['fluor'].read()
         If = np.sum(d[:, :, :, roi[0]:roi[1]], axis=-1)
-        x = h.table('xy_stage_x')
+        x = h['xy_stage_x'].read()
 
     else:
-        x = h.table()['xy_stage_x']
-        I0 = h.table()['I0']
-        If = h.table()['xs_channel1_rois_roi01_value_sum']
+        x = h['primary']['data']['xy_stage_x'].read()
+        I0 = h['primary']['data']['I0'].read()
+        If = h['primary']['data']['xs_channel1_rois_roi01_value_sum'].read()
     print(E)
     print(If)
     if mode == 'fluo':

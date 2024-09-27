@@ -19,6 +19,7 @@ element_to_roi = {
     "mo": (224,238),
     "pb": (228,242),
     "pd": (274, 292),
+    "pd_k": (274, 292),
     "pt":(197,214),
     "ru_l3": (256, 16),
     "rh_l3l2":(262, 290),
@@ -51,13 +52,13 @@ element_to_roi_smart = {
     "cl": (256, 270),
     "k": (325, 345),
     "i": (388,403),
-
+    "s": (224, 12, 2472),
     "p": (196, 208),
     "al": (160,182),
     "nb":(211,221),
     "mo": (224,238),
     "pb": (228,242),
-    "pd": (274, 292),
+    "pd": (256, 292),
     "pt":(197,214),
     "ru_l3": (256, 16),
     "rh_l3l2":(262, 290),
@@ -66,7 +67,7 @@ element_to_roi_smart = {
     "u": (310, 325),
     "ir":(190,206),
     "in":(324,340),
-
+    "pd_k":(276,16),
     "ti":(447,461),
     "ti_kb":(490,502),
     "ta":(188,193),
@@ -88,8 +89,8 @@ element_to_roi_smart = {
 #    roi = rois(element)
 
 
-#def rois(element):
-#    return element_to_roi[element.lower()]
+def rois(element):
+   return element_to_roi[element.lower()]
 
     # if element == 's':
     #    roi = [221, 239]
@@ -125,7 +126,7 @@ element_to_roi_smart = {
     #     roi = [195, 225]
     # else:
     #     roi = []
-    #
+    
     # return roi
 
 

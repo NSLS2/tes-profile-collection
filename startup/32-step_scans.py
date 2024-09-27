@@ -76,7 +76,7 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
     E_sections = np.array(E_sections)
     step_size = np.array(step_size)
     detector = detector
-    xs.hdf5.spec = "XSP3"
+    
 
     ept = []
     for ii in range(step_size.shape[0]):
@@ -86,12 +86,18 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
     sclr.set_mode("counting")
 
     if detector == "xs":
+        xs.hdf5.spec = "XSP3"
+        xs.bulk_data_spec ="XSP3"
+        xs.fluor.kind = Kind.omitted
         yield from bps.mv(xs.external_trig, False) # xs triger mode false means internal trigger
         yield from bps.mv(xs.cam.num_images, 1)
 
 
 
     else:
+        xssmart.hdf5.spec = "XSP3"
+        xssmart.bulk_data_spec ="XSP3"
+        xssmart.fluor.kind = Kind.omitted
         yield from bps.mv(xssmart.external_trig, False)  # xs triger mode false means internal trigger
         yield from bps.mv(xssmart.cam.num_images, 1)
 

@@ -33,6 +33,8 @@ def E_fly_smart(
     if xspress3 == None:
         xspress3 = xssmart
 
+    xspress3.fluor.kind = Kind.normal
+    
     validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
     assert num_scans > 0, f"num_scans ({num_scans}) must be more than 0"
@@ -157,9 +159,9 @@ def E_fly_smart(
             yield from bps.sleep(0.2)
             # set the fly speed
             yield from bps.mv(mono.linear.velocity, flyspeed)
-
+            yield from bps.sleep(0.2)
             yield from bps.trigger_and_read([mono], name="row_ends")
-
+            yield from bps.sleep(0.2)
             for v in ["p1600=0", "p1600=1"]:
                 yield from bps.mv(dtt, v)
                 yield from bps.sleep(0.1)
@@ -181,7 +183,7 @@ def E_fly_smart(
 
             yield from bps.mv(mono.linear.velocity, flyspeed)
             # hard coded to let the sclr count its fingers and toes
-            yield from bps.sleep(0.1)
+            yield from bps.sleep(0.5)
             # read and save the struck
             yield from bps.create(name="primary")
             yield from bps.read(sclr)
