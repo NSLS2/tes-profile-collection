@@ -63,7 +63,7 @@ def xy_fly(
         ystart,
         ystop,
         ystep_size=None,
-        xspress3=None,
+        xspress3=xs,
         plot=True,
 ):
     """Do a x-y fly scan.
@@ -96,8 +96,11 @@ def xy_fly(
     scan_title : str
        Title of scan, required.
     """
-    if xspress3 != None:
-        xspress3 = xs
+
+    if not isinstance(xspress3, TESXspress3Detector1CH):
+        raise ValueError("xspress3 must be of type TESXspress3Detector1CH (xssmart not supported)")
+    xspress3.fluor.kind = Kind.normal
+
     xy_fly_stage = xy_stage
     _validate_motor_limits(xy_fly_stage.x, xstart, xstop, "x")
     _validate_motor_limits(xy_fly_stage.y, ystart, ystop, "y")
@@ -426,9 +429,10 @@ E_centers.tolerance = 1e-15
 def E_fly(
         scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=None
 ):
-    if xspress3 != None:
+    if xspress3 == None:
         xspress3 = xs
 
+    xspress3.fluor.kind = Kind.normal
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
     assert num_scans > 0, f"num_scans ({num_scans}) must be more than 0"

@@ -103,14 +103,9 @@ def export_E_fly(scanID=-1):
         print(f'Data exported to {filepath}')
 
 
-
-
-
-
-
 def export_E_step(scanID=-1, scan_iter=0):
 
-    h = db[scanID] # read data from databroker
+    run = tiled_reading_client[scanID] # read data from databroker
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
@@ -121,20 +116,20 @@ def export_E_step(scanID=-1, scan_iter=0):
             + 0.5 * np.arctan((28.2474 - linear) / 35.02333)
             + np.deg2rad(energy_cal) / 2
         )
-    E = _linear_to_energy(h.table()['mono_linear'])
+    E = _linear_to_energy(run['primary']['data']['mono_linear'].read())
 
     #E = h.table()['mono_energy']
-    I0 = h.table()['I0']
-    I_TEY = h.table()['fbratio']
+    I0 = run['primary']['data']['I0'].read()
+    I_TEY = run['primary']['data']['fbratio'].read()
     # If_1_roi1 = h.table()['xs_channel1_rois_roi01_value_sum']
     # If_1_roi2 = h.table()['xs_channel1_rois_roi02_value_sum']
     # If_1_roi3 = h.table()['xs_channel1_rois_roi03_value_sum']
     # If_1_roi4 = h.table()['xs_channel1_rois_roi04_value_sum']
  
-    If_1_roi1 = h.table()[xs.channel01.mcaroi01.total_rbv.name]
-    If_1_roi2 = h.table()[xs.channel01.mcaroi02.total_rbv.name]
-    If_1_roi3 = h.table()[xs.channel01.mcaroi03.total_rbv.name]
-    If_1_roi4 = h.table()[xs.channel01.mcaroi04.total_rbv.name]
+    If_1_roi1 = run['primary']['data'][xs.channel01.mcaroi01.total_rbv.name].read()
+    If_1_roi2 = run['primary']['data'][xs.channel01.mcaroi02.total_rbv.name].read()
+    If_1_roi3 = run['primary']['data'][xs.channel01.mcaroi03.total_rbv.name].read()
+    If_1_roi4 = run['primary']['data'][xs.channel01.mcaroi04.total_rbv.name].read()
 
     #If_2_roi1 = h.table()['xs_channel2_rois_roi01_value_sum']
     #If_2_roi2 = h.table()['xs_channel2_rois_roi02_value_sum']
@@ -149,7 +144,7 @@ def export_E_step(scanID=-1, scan_iter=0):
                        'If_CH1_roi4': If_1_roi4})
     #df['#Energy'] = df1['#Energy'].str.rjust(13, " ")
 
-    start = h.start
+    start = run.start
     dt = datetime.datetime.fromtimestamp(start["time"])
 
     file_head ={'beamline_id': 'TES/8-BM of NSLS-II',
@@ -227,6 +222,7 @@ def export_xy_fly_sclr(scanID = -1):
 
 
 '''
+
 def ResaveSclr(element, scan_title, scanID, operator):
 
     h = db[scanID]
@@ -258,14 +254,11 @@ arr = np.vstack(h.table()[name])
 tifffile.imsave(fln, arr.astype(np.float32), imagej=True)
 
 
-
-
-
 '''
 
 
 def export_Esmart_step(scanID=-1, scan_iter=0):
-    h = db[scanID]  # read data from databroker
+    run = tiled_reading_client[scanID]  # read data from databroker
 
     e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
     energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
@@ -278,15 +271,15 @@ def export_Esmart_step(scanID=-1, scan_iter=0):
             + np.deg2rad(energy_cal) / 2
         )
 
-    E = _linear_to_energy(h.table()['mono_linear'])
+    E = _linear_to_energy(run['primary']['data']['mono_linear'].read())
 
     # E = h.table()['mono_energy']
-    I0 = h.table()['I0']
-    I_TEY = h.table()['fbratio']
-    If_1_roi1 = h.table()['xssmart_channel01_mcaroi01_total_rbv']
-    If_2_roi1 = h.table()['xssmart_channel02_mcaroi01_total_rbv']
-    If_3_roi1 = h.table()['xssmart_channel03_mcaroi01_total_rbv']
-    If_4_roi1 = h.table()['xssmart_channel04_mcaroi01_total_rbv']
+    I0 = run['primary']['data']['I0'].read()
+    I_TEY = run['primary']['data']['fbratio'].read()
+    If_1_roi1 = run['primary']['data']['xssmart_channel01_mcaroi01_total_rbv'].read()
+    If_2_roi1 = run['primary']['data']['xssmart_channel02_mcaroi01_total_rbv'].read()
+    If_3_roi1 = run['primary']['data']['xssmart_channel03_mcaroi01_total_rbv'].read()
+    If_4_roi1 = run['primary']['data']['xssmart_channel04_mcaroi01_total_rbv'].read()
 
 
 
@@ -307,7 +300,7 @@ def export_Esmart_step(scanID=-1, scan_iter=0):
 
     # df['#Energy'] = df1['#Energy'].str.rjust(13, " ")
 
-    start = h.start
+    start = run.start
     dt = datetime.datetime.fromtimestamp(start["time"])
 
     file_head = {'beamline_id': 'TES/8-BM of NSLS-II',
@@ -350,18 +343,18 @@ def export_Esmart_step(scanID=-1, scan_iter=0):
     print(f'Data exported to {filepath}')
 
 def export_E_fly_smart(scanID=-1):
-    h = db[scanID]
-    start = h.start
+    run = tiled_reading_client[scanID]
+    start = run.start
     element = start['user_input']['element']
     roi = element_to_roi_smart[element.lower()]
-    d = np.array(list(h.data('fluor', stream_name='primary', fill=True)))
+    d = run['primary']['data']['fluor'].read()
     If = np.sum(d[:, :, :, roi[0]:roi[0]+roi[1]], axis=-1)
-    I_TEY = h.table()['fbratio']
-    E = h.table('energy_bins')['E_centers'][1]
-    I0 = h.table()['I0']
-    It = h.table()['It']
+    I_TEY = run['primary']['data']['fbratio'].read()
+    E = run['energy_bins']['data']['E_centers'].read()[0]
+    I0 = run['primary']['data']['I0'].read()[0]
+    It = run['primary']['data']['It'].read()[0]
     #I_sclr_S = h.table()['S']
-    Dwell_time = h.table()['dwell_time']
+    Dwell_time = run['primary']['data']['dwell_time'].read()[0]
     dt = datetime.datetime.fromtimestamp(start["time"])
 
     file_head = {'beamline_id': 'TES/8-BM of NSLS-II',

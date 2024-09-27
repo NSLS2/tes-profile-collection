@@ -106,7 +106,7 @@ class TESXspress3DetectorHDF5Plugin(Xspress3HDF5Plugin):
         # These three beamlines have a -new suffix in their 
         if beamline in ["xpd", "fxi", "qas"]:
             beamline = f"{beamline}-new"
-        the_full_data_dir_path = f"/nsls2/data/{beamline}/proposals/{self._md.get('cycle', '')}/{self._md.get('data_session', '')}/assets/default"
+        the_full_data_dir_path = f"/nsls2/data/{beamline}/proposals/{self._md.get('cycle', '')}/{self._md.get('data_session', '')}/assets/{self.parent.name}"
         the_data_dir_path = the_datetime.strftime(path_template)
         the_full_data_dir_path = Path(the_full_data_dir_path) / Path(the_data_dir_path)
         return the_full_data_dir_path
@@ -127,7 +127,7 @@ class TESXspress3DetectorHDF5Plugin(Xspress3HDF5Plugin):
 # to
 #   channel_nubmers=(1, 2)
 xspress3_class_4ch = build_xspress3_class(
-    channel_numbers=(1,2,3,4),
+    channel_numbers=(1, 2, 3, 4),
     mcaroi_numbers=(1, 2, 3, 4),
     image_data_key="fluor",
     xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
@@ -137,7 +137,7 @@ xspress3_class_4ch = build_xspress3_class(
             "HDF1:",
             md=RE.md,
             name="hdf5",
-            root_path=f"/nsls2/data/tes/proposals/{RE.md.get('cycle', '')}/{RE.md.get('data_session', '')}/assets/",
+            root_path=f"/nsls2/data/tes/proposals/",
             path_template="%Y/%m/%d",
         )
     }
@@ -179,6 +179,7 @@ class TESXspress3Detector4CH(xspress3_class_4ch):
         self._mode = TESMode.step
 
         self.bulk_data_spec = "XSP3_FLY"
+
 
     def stop(self, *, success=False):
         print("Xspress3Detector.stop")
@@ -231,7 +232,7 @@ xspress3_class_1ch = build_xspress3_class(
             "HDF1:",
             md=RE.md,
             name="hdf5",
-            root_path=f"/nsls2/data/tes/proposals/{RE.md.get('cycle', '')}/{RE.md.get('data_session', '')}/assets",
+            root_path=f"/nsls2/data/tes/proposals/",
             path_template="%Y/%m/%d",
         )
     }

@@ -31,7 +31,10 @@ def Batch_E_fly(index=None):
         flyspeed = data[ii, 11]
         detector = data[ii, 10]
         if detector != "xs":
-            detector = None
+            raise ValueError("Only detector xs is supported")
+        else:
+            detector = xs
+
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
         yield from bps.mv(mono.linear.velocity, 0.1)
         yield from E_fly(
