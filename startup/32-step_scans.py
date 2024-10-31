@@ -113,7 +113,7 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     #@bpp.baseline_decorator([mono, xy_stage])
     # TODO put in other meta data
-    def scan_once():
+    def scan_once(scan_index):
    #     l_start = _energy_to_linear(ept[0])
    #     yield from bps.mv(mono.linear, l_start)
 
@@ -128,7 +128,9 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
                 mono.linear,
                 ept_linear,
                 md={
+                    "prefect_post_processors": ["export_E_step"],
                     "scan_title": scan_title,
+                    "scan_index": scan_index,
                     "operator": operator,
                     "element": element,
                     "user_input": {
@@ -157,7 +159,9 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
                 mono.linear,
                 ept_linear,
                 md={
+                    "prefect_post_processors": ["export_Esmart_step"],
                     "scan_title": scan_title,
+                    "scan_index": scan_index,
                     "operator": operator,
                     "element": element,
                     "user_input": {
@@ -180,17 +184,8 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
         #yield from bps.mv(mono.linear.velocity, 0.1)
 
 
-    for scan_iter in range(int(num_scans)):
-
-
-
-        yield from scan_once()
-        if detector == "xs":
-            yield from export_E_step(-1,scan_iter)
-        elif detector == "xssmart":
-            yield from export_Esmart_step(-1, scan_iter)
-        else:
-            print("Detector not defined")
+    for scan_index in range(int(num_scans)):
+        yield from scan_once(scan_index)
 
 
 """
