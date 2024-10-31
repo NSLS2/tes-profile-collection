@@ -96,7 +96,7 @@ def xy_fly(
     scan_title : str
        Title of scan, required.
     """
-
+    xspress3 = xs
     if not isinstance(xspress3, TESXspress3Detector1CH):
         raise ValueError("xspress3 must be of type TESXspress3Detector1CH (xssmart not supported)")
     xspress3.fluor.kind = Kind.normal

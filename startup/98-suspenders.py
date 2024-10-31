@@ -22,7 +22,7 @@ import bluesky.plan_stubs as bps
 #RE.install_suspender(shutterb_suspender)
 
 
-'''
+
 ring_current = EpicsSignal('SR:OPS-BI{DCCT:1}I:Real-I')
 sus = SuspendFloor(ring_current, 100, resume_thresh=400, sleep=600)
 RE.install_suspender(sus)
@@ -33,8 +33,8 @@ sus_abs_hi = SuspendCeil(absorber_pos, -54, resume_thresh=-55)
 RE.install_suspender(sus_abs_low)
 RE.install_suspender(sus_abs_hi)
 
-'''
-'''
+
+
 ############################
 
 ring_suspender = SuspendFloor(ring_current, 50, resume_thresh=399, sleep=60)
@@ -48,11 +48,11 @@ solenoid_v_suspenderFloor = SuspendFloor(solenoid_v, -0.3, resume_thresh = -0.1,
                                        #post_plan = mono_tilt
                                        )
 
-I0_suspenderFloor = SuspendFloor(I0, 0.01, resume_thresh= 0.03, sleep = 2)
+I0_suspenderFloor = SuspendFloor(I0, 0.04, resume_thresh= 0.05, sleep = 2)
 RE.install_suspender(ring_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
-
+"""
 if not auto_alignment_mode():
     print("Installing I0_suspenderFloor...")
     RE.install_suspender(I0_suspenderFloor)
@@ -62,10 +62,10 @@ else:
 print("\nRE.suspenders:")
 for s in RE.suspenders:
     print(f"  - {s}")
-
+"""
 #####################################
 
-'''
+
 '''
 
 def mono_tilt():

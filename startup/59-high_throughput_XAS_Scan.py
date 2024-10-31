@@ -36,11 +36,18 @@ def unload_holder(holder_type, holder_id):
 
 
 
+def sample(holder_type, sample_position):
+    x = sample_positions[holder_type][sample_position][0]
+    y = sample_positions[holder_type][sample_position][1]
+    z = sample_positions[holder_type][sample_position][2]
+    ry = sample_positions[holder_type][sample_position][3]
+
+    yield from bps.mv(sample_smart.x, x, sample_smart.y, y,sample_smart.z, z,sample_smart.ry, ry)
+
+    return True
+
 
 def scan_holder(holder_type, holder_owner, sample_list):
-
-
-
 
     if ready_to_scan():
         sample_position =sample_list[:,0]
@@ -53,15 +60,14 @@ def scan_holder(holder_type, holder_owner, sample_list):
 
         for ii in range(sample_position.size):
 
-            yield from bps.mv(sample_smart.x, sample_positions[holder_type][str(sample_position[ii])][0])
+            yield from bps.mv(sample_smart.x, sample_positions[holder_type][str(sample_position[ii])][0], sample_smart.y, sample_positions[holder_type][str(sample_position[ii])][1], sample_smart.z, sample_positions[holder_type][str(sample_position[ii])][2], sample_smart.ry, sample_positions[holder_type][str(sample_position[ii])][3])
             absorption_edge = element_to_roi_smart[element[ii].lower()+"_"+edge[ii].lower()][2]
             scan_range = list(map(float, sample_list[:, 5][ii].strip('][').split(',')))
             E_scan_range = np.add(scan_range, absorption_edge)
             print("absorption edge = ", absorption_edge)
             print("scan range = ", E_scan_range)
+
             if scan_type[ii].lower() == "stepscan":
-
-
                 if type(sample_list[ii, 6]) == int or type(sample_list[ii, 6]) == float:
                     step_size = [sample_list[ii, 6]]
                 else:
@@ -89,16 +95,18 @@ def scan_holder(holder_type, holder_owner, sample_list):
             else:
                 print("Undefined Scan Type")
                 pass
+        print("===========================saving data  ")
+        yield from bps.sleep(5)
+
+    else:
+        print("Not ready to scan yet")
 
 
 
-
-    print("===========================saving data  " )
-    yield from bps.sleep(5)
 
 
 def auto_scan(holder_index = None):
-    if input ("Please make sure the sample stage is EMPTY?") == "y":
+    if input ("Please make sure the sample stage is EMPTY ! ! ! y/n     ") == "y":
         [holder_owners,holder_types, holder_lists, sample_lists]= sample_holders(holder_index)
         for ii in range(holder_lists.size):
             holder_type = holder_types[ii]
@@ -114,3 +122,11 @@ def auto_scan(holder_index = None):
             home_robot_smart("Ry")
 
 
+def only_scan(holder_index):
+    if input ("Please make sure the sample stage is IN Position ! ! ! y/n     ") == "y":
+        [holder_owners,holder_types, holder_lists, sample_lists]= sample_holders(holder_index)
+        for ii in range(holder_lists.size):
+            holder_type = holder_types[ii]
+            holder_owner = holder_owners[ii]
+            sample_list = sample_lists[ii]
+            yield from scan_holder(holder_type, holder_owner, sample_list)

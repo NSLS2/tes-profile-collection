@@ -138,8 +138,9 @@ def Batch_E_step(index=None, xspress3=None):
         else:
             Step_size = list(map(float, data[ii, 9].strip('][').split(',')))
         num_scans = data[ii, 6]
-
+        breakpoint()
         yield from bps.mv(xy_fly_stage.x, x, xy_fly_stage.y, y, xy_fly_stage.z, z)
+        breakpoint()
         yield from E_Step_Scan(scan_title=scan_title,
                                operator=operator,
                                element=element,

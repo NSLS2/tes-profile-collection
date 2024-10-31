@@ -107,23 +107,22 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
     ept_linear =  _energy_to_linear(ept)
     #yield from bps.mv(sclr.set_mode,"counting")
     yield from bps.mv(mono.linear.velocity, 0.1)
+    #print(mono.linear.velocity)
+
     #yield from bps.sleep(0.1)
     #@bpp.monitor_during_decorator([xs.channel1.rois.roi01.value])
     #@bpp.baseline_decorator([mono, xy_stage])
     # TODO put in other meta data
     def scan_once():
- #       l_start = _energy_to_linear(ept[0])
-
- #       yield from bps.mv(mono.linear, l_start)
-
-
+   #     l_start = _energy_to_linear(ept[0])
+   #     yield from bps.mv(mono.linear, l_start)
 
         yield from bps.checkpoint()
 
         if detector == "xs":
 
-            set_xs_roi(element=element, edge=edge, chanel=1)
-
+            #set_xs_roi(element=element, edge=edge, chanel=1)
+            print(detector)
             return (yield from list_scan(
                 [sclr, xs],
                 mono.linear,
@@ -152,7 +151,7 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
             set_xssmart_roi(element=element, edge=edge, chanel=2)
             set_xssmart_roi(element=element, edge=edge, chanel=3)
             set_xssmart_roi(element=element, edge=edge, chanel=4)
-
+            print(detector)
             return (yield from list_scan(
                 [sclr, xssmart],
                 mono.linear,

@@ -111,8 +111,9 @@ def sample_holders(holder_index = None):
         for ii in holder_index:
             holder_list = int(data[ii,2]);
             holder_lists.append(holder_list)
+            #print(holder_lists)
         holder_lists = np.array(holder_lists)
-    #print(holder_lists)
+
     sample_lists = []
     for ii in holder_lists:
         sample_list = pd.read_excel(file_path, sheet_name=str(ii), index_col=0).dropna()
@@ -243,7 +244,7 @@ def go_load_holder():
                 return True
                 print("sample loaded")
             else:
-                print("sample holder not caught")
+                print("Sample holder not caught")
                 return False
         else:
             print("NOT ready to load sample holder yet")
@@ -364,7 +365,7 @@ def go_scan():
 
 def ready_to_scan():
     if home_check():
-        if stage_smart_status() == "ready to scan" and SDD_smart_status() != False and robot_smart_status() == "parked":
+        if stage_smart_status() == "Not ready to load" and SDD_smart_status() != False and robot_smart_status() == "parked":
             return True
         else:
             return False
@@ -375,11 +376,10 @@ def stage_smart_status():
         if abs(sample_smart.x.position - sample_x_loading) < 0.01 and abs(sample_smart.y.position - sample_y_loading) < 0.01 and abs(
                 sample_smart.z.position - sample_z_loading) < 0.01 and abs(sample_smart.ry.position - sample_ry_loading) < 0.01 and SDD_smart_status()=="parked" and robot_smart_status() == "parked":
             stage_status = "ready to load"
-        elif abs(sample_smart.x.position - sample_x) < 0.01 and abs(sample_smart.y.position - sample_y) < 0.01 and abs(
-                sample_smart.z.position - sample_z) < 0.01 and abs(sample_smart.ry.position - sample_ry) < 0.01:
-            stage_status = "ready to scan"
+
         else:
-            pass
+            stage_status = "Not ready to load"
+
         return stage_status
     else:
         print("stage NOT homed")
@@ -404,13 +404,10 @@ def SDD_smart_status():
     if home_check():
         if abs(SDD_smart.x.position - SDD_parking) <0.1:
             return "parked"
-        elif abs(SDD_smart.x.position - SDD_scan) <0.1:
-            return "ready to scan"
-        elif SDD_smart.x.position - SDD_scan < 0.1 and SDD_smart.x.position - SDD_parking >0.1:
-            return "fine"
+
         else:
-            print ("Pls check SDD position")
-            return False
+            return "ok"
+
     else:
         print("stage NOT homed")
 
@@ -418,6 +415,10 @@ def SDD_smart_status():
 def home_robot_smart(axis = "Y"):
     home_robot_smart = EpicsSignal("XF:08BMC-ES:SE{SmplM:1-Ax:"+axis+"}Start:Home-Cmd", name = "home_robot_smart")
     home_robot_smart.put(1)
+
+
+
+
 
 '''
 
