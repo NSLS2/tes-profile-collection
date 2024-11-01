@@ -160,7 +160,7 @@ def E_Step_Scan(scan_title, *, operator, element, edge, detector, dwell_time=3, 
                 mono.linear,
                 ept_linear,
                 md={
-                    "prefect_post_processors": ["export_Esmart_step"],
+                    "prefect_post_processors": ["export_E_step"],
                     "scan_title": scan_title,
                     "scan_index": scan_index,
                     "operator": operator,

@@ -28,11 +28,9 @@ def validate_motor_limits(motor, start, stop, k):
 
 
 def E_fly_smart(
-        scan_title, *, operator, element, edge, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=None
-):
-    if xspress3 == None:
-        xspress3 = xssmart
-
+        scan_title, *, operator, element, edge, start, stop, step_size, num_scans, flyspeed=0.05):
+    
+    xspress3 = xssmart
     xspress3.fluor.kind = Kind.normal
     
     validate_motor_limits(mono.energy, start, stop, "E")
@@ -121,6 +119,8 @@ def E_fly_smart(
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
+            "prefect_post_processors": ["export_E_fly"],
+            "detectors": ['xssmart'],
             "scan_title": scan_title,
             "operator": operator,
             "user_input": {
@@ -199,8 +199,3 @@ def E_fly_smart(
             yield from fly_once(scan_iter)
 
     yield from fly_body()
-
-#export data
-    print("Waiting for files... ...")
-    yield from bps.sleep(5)
-    #export_E_fly_smart(-1)

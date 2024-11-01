@@ -427,12 +427,11 @@ E_centers.tolerance = 1e-15
 
 
 def E_fly(
-        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05, xspress3=None
-):
-    if xspress3 == None:
-        xspress3 = xs
-
+        scan_title, *, operator, element, start, stop, step_size, num_scans, flyspeed=0.05):
+    
+    xspress3 = xs
     xspress3.fluor.kind = Kind.normal
+    
     _validate_motor_limits(mono.energy, start, stop, "E")
     assert step_size > 0, f"step_size ({step_size}) must be more than 0"
     assert num_scans > 0, f"num_scans ({num_scans}) must be more than 0"
@@ -516,6 +515,8 @@ def E_fly(
     # TODO put is other meta data
     @bpp.run_decorator(
         md={
+            "prefect_post_processors": ["export_E_fly"],
+            "detectors": ['xs'],
             "scan_title": scan_title,
             "operator": operator,
             "user_input": {
@@ -597,11 +598,6 @@ def E_fly(
             yield from fly_once(scan_iter)
 
     yield from fly_body()
-
-#export data
-    print("Waiting for files... ...")
-    yield from bps.sleep(5)
-    export_E_fly(-1)
 
     '''
     roi = rois(element)
