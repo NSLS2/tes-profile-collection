@@ -151,18 +151,7 @@ def export_E_step(scanID=-1, scan_iter=0):
 
     run = tiled_reading_client[scanID]  # read data from databroker
 
-    e_back = yield from _get_v_with_dflt(mono.e_back, 1977.04)
-    energy_cal = yield from _get_v_with_dflt(mono.cal, 0.40118)
-
-    def _linear_to_energy(linear):
-        linear = np.asarray(linear)
-        return e_back / np.sin(
-            np.deg2rad(45)
-            + 0.5 * np.arctan((28.2474 - linear) / 35.02333)
-            + np.deg2rad(energy_cal) / 2
-        )
-
-    E = _linear_to_energy(run["primary"]["data"]["mono_linear"].read())
+    E =  tiled_reading_client[scanID].start['E_points']
 
     # E = h.table()['mono_energy']
     I0 = run["primary"]["data"]["I0"].read()
@@ -253,65 +242,6 @@ def tes_data(scanID=-1, scan_iter=0):
         export_E_step(scanID, scan_iter)
     else:
         print(f"Plan_name is {start['plan_name']}.")
-
-
-def export_xy_fly_sclr(scanID=-1):
-    h = db[scanID]
-    names = ["I0", "x_centers", "y_centers", "S", "Mg", "Sr_Si", "Al", "P", "Ca"]
-    # read data from databroker
-    for name in names:
-        fln = f"{name}.tiff"
-        arr = np.vstack(h.table()[name])
-        tifffile.imsave(fln, arr.astype(np.float32), imagej=True)
-
-    names_norm = ["S", "Mg", "Sr_Si", "Al", "P", "Ca"]
-    for name in names_norm:
-        fln = f"{name}+'_norm'.tiff"
-        arr = np.vstack(h.table()[name])
-        tifffile.imsave(fln, arr.astype(np.float32), imagej=True)
-
-    I0 = h.table()["I0"]
-    x_centers = h.table()["x_centers"]
-    y_centers = h.table()["y_centers"]
-    S = h.table()["S"]
-    Mg = h.table()["Mg"]
-    I0 = h.table()["I0"]
-
-
-"""
-
-def ResaveSclr(element, scan_title, scanID, operator):
-
-    h = db[scanID]
-    start = db[scanID].start
-    If = h.table()[element]
-    E = h.table('energy_bins')['E_centers'][1]
-
-    I0 = h.table()['I0']
-    Dwell_time = h.table()['dwell_time']
-
-    dt = datetime.datetime.fromtimestamp(start["time"])
-
-    for ii in range(If.shape[0]):
-        df = pd.DataFrame({'#Energy': E,
-                           'Dwell_time': Dwell_time[ii + 1],
-                           'I0': I0[ii + 1],
-                           'If': If[ii + 1]})
-        filepath = os.path.expanduser(
-            f"~/Users/Data/{start['operator']}/{dt.date().isoformat()}/xy_fly/"
-            f"{start['scan_title']}-{start['scan_id']}-{start['operator']}-{dt.time().isoformat()}-{ii}.dat")
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-        df.to_csv(filepath)
-
-         names = ["S", "x_centers", "y_centers"]
-for name in names:       
-fln = f"{name}.tiff"       
-arr = np.vstack(h.table()[name])       
-tifffile.imsave(fln, arr.astype(np.float32), imagej=True)
-
-
-"""
 
 
 def export_Esmart_step(scanID=-1, scan_iter=0):
