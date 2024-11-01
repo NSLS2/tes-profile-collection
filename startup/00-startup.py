@@ -9,7 +9,7 @@ from tiled.client import from_profile
 import appdirs
 from bluesky.utils import PersistentDict
 from IPython import get_ipython
-from nslsii import configure_base
+from nslsii import configure_base, configure_kafka_publisher
 from ophyd.signal import EpicsSignalBase
 import redis
 from redis_json_dict import RedisJSONDict
@@ -55,7 +55,10 @@ tiled_inserter = TiledInserter()
 
 configure_base(get_ipython().user_ns,
                tiled_inserter,
-               publish_documents_with_kafka=True)
+               publish_documents_with_kafka=False)
+
+# TODO: This is a workaround, remove this once nslsii is fixed. See: https://github.com/NSLS-II/nslsii/issues/207
+configure_kafka_publisher(RE, "tes")
 
 #RE.unsubscribe(0)  # Remove old-style databroker saving.# Define tiled catalog
 tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_WRITING_API_KEY_TES"])["tes"]["raw"]
