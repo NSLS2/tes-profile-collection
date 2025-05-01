@@ -191,7 +191,7 @@ def go_catch_holder (holder_type, holder_Index):
                 yield from bps.mv(robot_smart.x, holder_x)
                 yield from bps.mv(robot_smart.y, holder_y+20)
                 robot_status = "catch 1x"
-                print("1x caugth")
+                print(robot_status)
                 return robot_status
 
             elif int(holder_Index) > 20:
@@ -201,7 +201,7 @@ def go_catch_holder (holder_type, holder_Index):
                 yield from bps.mv(robot_smart.z, holder_z)
                 yield from bps.mv(robot_smart.y, holder_y+20)
                 robot_status = "catch 2x"
-                print("2x caught")
+                print(robot_status)
                 return robot_status
         else:
             yield from go_robot_parking()
@@ -223,6 +223,7 @@ def go_load_holder():
                 yield from bps.mv(robot_smart.x, robot_x_rotating)
                 yield from bps.mv(robot_smart.z, robot_z_rotating)
                 yield from bps.mv(robot_smart.ry, robot_ry_loading)
+                yield from bps.mv(robot_smart.ry, robot_ry_loading)
                 yield from bps.mv(robot_smart.x, robot_x_loading)
                 yield from bps.mv(robot_smart.z, robot_z_loading)
                 yield from bps.mv(robot_smart.y, robot_y_loading)
@@ -233,7 +234,7 @@ def go_load_holder():
             elif robot_status == "catch 2x":
                 yield from bps.mv(robot_smart.z, robot_z_rotating)
                 yield from bps.mv(robot_smart.x, robot_x_rotating)
-                yield from bps.mv(robot_smart.y, robot_y_rotating)
+#                yield from bps.mv(robot_smart.y, robot_y_rotating)
                 yield from bps.mv(robot_smart.ry, robot_ry_rotating)
                 yield from bps.mv(robot_smart.ry, robot_ry_loading)
                 yield from bps.mv(robot_smart.x, robot_x_loading)
@@ -300,8 +301,8 @@ def go_return_holder(holder_type, holder_Index):
             yield from go_robot_parking()
             return True
         elif int(holder_Index) > 20:
-            yield from bps.mv(robot_smart.x, holder_x)
             yield from bps.mv(robot_smart.z, holder_z)
+            yield from bps.mv(robot_smart.x, holder_x)
             yield from bps.mv(robot_smart.y, holder_y)
             yield from go_robot_parking()
             return True
@@ -321,8 +322,8 @@ def go_return_holder(holder_type, holder_Index):
                 yield from go_robot_parking()
                 return True
             elif int(holder_Index) > 20:
-                yield from bps.mv(robot_smart.x, holder_x)
                 yield from bps.mv(robot_smart.z, holder_z)
+                yield from bps.mv(robot_smart.x, holder_x)
                 yield from bps.mv(robot_smart.y, holder_y)
                 yield from go_robot_parking()
                 return True
@@ -365,7 +366,8 @@ def go_scan():
 
 def ready_to_scan():
     if home_check():
-        if stage_smart_status() == "Not ready to load" and SDD_smart_status() != False and robot_smart_status() == "parked":
+        #if stage_smart_status() == "Not ready to load" and SDD_smart_status() != False and robot_smart_status() == "parked":
+        if SDD_smart_status() != False:
             return True
         else:
             return False
@@ -374,7 +376,7 @@ def stage_smart_status():
     global stage_status
     if home_check():
         if abs(sample_smart.x.position - sample_x_loading) < 0.01 and abs(sample_smart.y.position - sample_y_loading) < 0.01 and abs(
-                sample_smart.z.position - sample_z_loading) < 0.01 and abs(sample_smart.ry.position - sample_ry_loading) < 0.01 and SDD_smart_status()=="parked" and robot_smart_status() == "parked":
+                sample_smart.z.position - sample_z_loading) < 0.01 and abs(sample_smart.ry.position - sample_ry_loading) < 0.01 and SDD_smart_status()=="parked": #and robot_smart_status() == "parked":
             stage_status = "ready to load"
 
         else:

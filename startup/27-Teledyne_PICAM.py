@@ -193,7 +193,8 @@ class StandardPICamWithHDF5(StandardPICam):
                )
 
 # This camera is the default one (with the HDF5 plugin):
- #picam = None
+#picam = None
+#picam = StandardPICamWithHDF5('XF:08BM-ES{Det:PICAM1}', name='picam')
 picam = StandardPICamWithHDF5('XF:08BM-ES{Det:PICAM1}', name='picam')
 
 

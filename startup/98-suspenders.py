@@ -48,8 +48,9 @@ solenoid_v_suspenderFloor = SuspendFloor(solenoid_v, -0.3, resume_thresh = -0.1,
                                        #post_plan = mono_tilt
                                        )
 
-I0_suspenderFloor = SuspendFloor(I0, 0.04, resume_thresh= 0.05, sleep = 2)
+I0_suspender = SuspendFloor(I0, 0.04, resume_thresh= 0.05, sleep = 2)
 RE.install_suspender(ring_suspender)
+RE.install_suspender(I0_suspender)
 #RE.install_suspender(solenoid_v_suspenderCeil)
 #RE.install_suspender(solenoid_v_suspenderFloor)
 """
