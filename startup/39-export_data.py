@@ -73,7 +73,7 @@ def export_E_fly(scanID=-1):
     If = np.sum(d[:, :, :, roi[0] : roi[1]], axis=-1)
 
     primary_data = run["primary"]["data"]
-    I_TEY = primary_data["fbratio"].read()[0]
+    I_TEY = primary_data["It"].read()[0]
     E = run["energy_bins"]["data"]["E_centers"].read()[0]
     I0 = primary_data["I0"].read()[0]
     # I_sclr_S = primary_data['S']
@@ -151,11 +151,12 @@ def export_E_step(scanID=-1, scan_iter=0):
 
     run = tiled_reading_client[scanID]  # read data from databroker
 
-    E =  tiled_reading_client[scanID].start['E_points']
+    E = tiled_reading_client[scanID].start['E_points']
 
     # E = h.table()['mono_energy']
     I0 = run["primary"]["data"]["I0"].read()
     I_TEY = run["primary"]["data"]["fbratio"].read()
+    It = run["primary"]["data"]["It"].read()
     # If_1_roi1 = h.table()['xs_channel1_rois_roi01_value_sum']
     # If_1_roi2 = h.table()['xs_channel1_rois_roi02_value_sum']
     # If_1_roi3 = h.table()['xs_channel1_rois_roi03_value_sum']
@@ -178,6 +179,7 @@ def export_E_step(scanID=-1, scan_iter=0):
         {
             "#Energy": E,
             "I0": I0,
+            "It": It,
             "I_TEY": I_TEY,
             "If_CH1_roi1": If_1_roi1,
             "If_CH1_roi2": If_1_roi2,
@@ -198,7 +200,7 @@ def export_E_step(scanID=-1, scan_iter=0):
         "scan_title": start["scan_title"],
         "time": f"{dt.date().isoformat()} {dt.time().isoformat()}",
         "uid": start["uid"],
-        "user_input": start["user_input"],
+        #"user_input": start["user_input"],
         "derived_input": start["derived_input"],
     }
 
@@ -263,6 +265,7 @@ def export_Esmart_step(scanID=-1, scan_iter=0):
     # E = h.table()['mono_energy']
     I0 = run["primary"]["data"]["I0"].read()
     I_TEY = run["primary"]["data"]["fbratio"].read()
+    It = run["primary"]["data"]["It"].read()
     If_1_roi1 = run["primary"]["data"]["xssmart_channel01_mcaroi01_total_rbv"].read()
     If_2_roi1 = run["primary"]["data"]["xssmart_channel02_mcaroi01_total_rbv"].read()
     If_3_roi1 = run["primary"]["data"]["xssmart_channel03_mcaroi01_total_rbv"].read()
@@ -282,6 +285,7 @@ def export_Esmart_step(scanID=-1, scan_iter=0):
         {
             "#Energy": E,
             "I0": I0,
+            "It": It,
             "I_TEY": I_TEY,
             "If_CH1_roi1": If_1_roi1,
             "If_CH2_roi1": If_2_roi1,
@@ -303,7 +307,7 @@ def export_Esmart_step(scanID=-1, scan_iter=0):
         "scan_title": start["scan_title"],
         "time": f"{dt.date().isoformat()} {dt.time().isoformat()}",
         "uid": start["uid"],
-        "user_input": start["user_input"],
+        #"user_input": start["user_input"],
         "derived_input": start["derived_input"],
     }
 
@@ -342,7 +346,8 @@ def export_E_fly_smart(scanID=-1):
     run = tiled_reading_client[scanID]
     start = run.start
     element = start["user_input"]["element"]
-    roi = element_to_roi_smart[element.lower()]
+    edge = start["user_input"]["edge"]
+    roi = element_to_roi_smart[element.lower()+"_"+edge.lower()]
     d = run["primary"]["data"]["fluor"].read()
     If = np.sum(d[:, :, :, roi[0] : roi[0] + roi[1]], axis=-1)
     I_TEY = run["primary"]["data"]["fbratio"].read()

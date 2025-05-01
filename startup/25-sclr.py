@@ -138,3 +138,4 @@ for cpt in sclr.cnts.channels.component_names[used_channels:]:
 
 # The "I0" channel should be recorded and displayed in the LiveTable and LivePlot.
 getattr(sclr.cnts.channels, 'chan02').s.kind = 'hinted'
+getattr(sclr.cnts.channels, 'chan06').s.kind = 'hinted'

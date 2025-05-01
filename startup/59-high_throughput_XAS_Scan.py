@@ -50,7 +50,7 @@ def sample(holder_type, sample_position):
 def scan_holder(holder_type, holder_owner, sample_list):
 
     if ready_to_scan():
-        sample_position =sample_list[:,0]
+        sample_position =sample_list[:,0].astype(int)
         scan_type = sample_list[:, 4]
         element = sample_list[:,2]
         edge = sample_list[:,3]
@@ -87,7 +87,7 @@ def scan_holder(holder_type, holder_owner, sample_list):
 
                 print("absorption edge = ", absorption_edge)
                 print("scan range = ", E_start,E_stop)
-                print("scan range = ", step_size)
+                print("step size = ", step_size)
 
                 yield from E_fly_smart(scan_title= sample_name[ii], operator= holder_owner,
                                        element=element[ii], edge = edge[ii], start = E_start,

@@ -12,7 +12,6 @@ class XYStage(Device):
     y = Cpt(MresMotor, "Y}Mtr")
     z = Cpt(EpicsMotor, "Z}Mtr")
 
-
 xy_stage = XYStage("XF:08BMES-OP{SM:1-Ax:", name="xy_stage")
 
 xy_stage.x.velocity.kind = "normal"
@@ -31,7 +30,7 @@ class Mono(Device):
 
 mono = Mono(name="mono")
 #mono.energy.settle_time = 3
-mono.linear.settle_time = 2
+mono.linear.settle_time = 1
 #mono.settle_time = 1
 
 dtt = EpicsSignal("XF:08BM-CT{MC:06}Asyn.AOUT", name="dtt", string=True)
