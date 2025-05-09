@@ -72,6 +72,8 @@ def whoami():
         print(f"\nLogged in to tiled as: {db.context.whoami()['identities'][0]['id']}\n")
     except TypeError as e:
         print("Not authenticated with tiled! Please login...")
+    except AttributeError as e:
+        print("Running against tiled server that does not support auth.")
 
 whoami()
 
