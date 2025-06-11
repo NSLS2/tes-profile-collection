@@ -8,10 +8,3 @@ set -vxeo pipefail
 sudo mkdir -p -v /nsls2/xf08bm/shared/config/runengine-metadata
 sudo chown -Rv $USER: /nsls2/
 
-# Temporary solution until the bloptools#5 is merged/released.
-#
-#   https://github.com/NSLS-II/bloptools/pull/5
-#
-pip install -v git+https://github.com/NSLS-II/bloptools.git@main
-
-pip install nslsii==0.9.1
