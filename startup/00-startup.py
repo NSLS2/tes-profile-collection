@@ -87,8 +87,6 @@ def logout():
     """
 
     tiled_reading_client.logout()
-    from tiled.client.context import clear_default_identity
-    clear_default_identity(tiled_reading_client.context.api_uri)
 
 #RE.subscribe(post_document)
 
