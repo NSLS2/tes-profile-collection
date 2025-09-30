@@ -30,7 +30,7 @@ blosc-hdf5-plugin = ">=1.0.1,<2"
 databroker = "==2.0.0b68"
 p4p = ">=4.2.0,<5"
 epicscorelibs = ">=7.0.7.99.1.1,<8"
-
+caproto = ">=1.1.1,<2"
 
 [feature.profile.pypi-dependencies]
 ophyd-async = { version = ">0.10.0", extras = ["ca", "pva"] }
