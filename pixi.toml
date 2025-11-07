@@ -1,4 +1,4 @@
-[project]
+[workspace]
 channels = ["conda-forge"]
 name = "tes-profile-collection"
 platforms = ["linux-64"]
