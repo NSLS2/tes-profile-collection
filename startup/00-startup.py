@@ -62,9 +62,11 @@ configure_kafka_publisher(RE, "tes")
 
 #RE.unsubscribe(0)  # Remove old-style databroker saving.# Define tiled catalog
 tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_WRITING_API_KEY_TES"])["tes"]["raw"]
+tiled_writing_client.context.http_client.headers['tiled-qos'] = 'acquisition'
 
 print("Intializing tiled reading client...\nMake sure you check for duo push.")
 db = tiled_reading_client = from_profile("nsls2")["tes"]["raw"]
+tiled_reading_client.context.http_client.headers['tiled-qos'] = 'acquisition'
 
 
 def whoami():
