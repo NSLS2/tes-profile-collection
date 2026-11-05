@@ -7,7 +7,9 @@ import time
 from tiled.client import from_profile
 
 import appdirs
+from bluesky.callbacks.buffer import BufferingWrapper
 from bluesky.utils import PersistentDict
+from bluesky_tiled_plugins import TiledInserter
 from IPython import get_ipython
 from nslsii import configure_base, configure_kafka_publisher
 from ophyd.signal import EpicsSignalBase
@@ -15,6 +17,8 @@ import redis
 from redis_json_dict import RedisJSONDict
 from IPython.terminal.prompts import Prompts, Token
 
+
+TILED_BACKUP_ROOT = "/nsls2/data/tes/shared/config/bluesky/tiled_backup"
 
 EpicsSignalBase.set_defaults(timeout=10, connection_timeout=10)
 
@@ -33,36 +37,22 @@ class ProposalIDPrompt(Prompts):
 ip = get_ipython()
 ip.prompts = ProposalIDPrompt(ip)
 
+tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_WRITING_API_KEY_TES"])["tes"]["raw"]
+tiled_writing_client.context.http_client.headers['tiled-qos'] = 'acquisition'
 
-class TiledInserter:
-    def insert(self, name, doc):
-        ATTEMPTS = 20
-        error = None
-        for attempt in range(ATTEMPTS):
-            try:
-                tiled_writing_client.post_document(name, doc)
-            except Exception as exc:
-                print("Document saving failure:", repr(exc))
-                error = exc
-            else:
-                break
-            time.sleep(2)
-        else:
-            # Out of attempts
-            raise error
-
-tiled_inserter = TiledInserter()
+db = tiled_inserter = TiledInserter(tiled_writing_client,
+    "tes",
+    backup_directory=f"{TILED_BACKUP_ROOT}/raw")
+tiled_inserter = BufferingWrapper(tiled_inserter)   # in-process queue: RE never blocks
 
 configure_base(get_ipython().user_ns,
-               tiled_inserter,
                publish_documents_with_kafka=False)
+RE.subscribe(tiled_inserter)
 
 # TODO: This is a workaround, remove this once nslsii is fixed. See: https://github.com/NSLS-II/nslsii/issues/207
 configure_kafka_publisher(RE, "tes")
 
 #RE.unsubscribe(0)  # Remove old-style databroker saving.# Define tiled catalog
-tiled_writing_client = from_profile("nsls2", api_key=os.environ["TILED_BLUESKY_WRITING_API_KEY_TES"])["tes"]["raw"]
-tiled_writing_client.context.http_client.headers['tiled-qos'] = 'acquisition'
 
 print("Intializing tiled reading client...\nMake sure you check for duo push.")
 db = tiled_reading_client = from_profile("nsls2")["tes"]["raw"]
@@ -89,8 +79,6 @@ def logout():
     """
 
     tiled_reading_client.logout()
-    from tiled.client.context import clear_default_identity
-    clear_default_identity(tiled_reading_client.context.api_uri)
 
 #RE.subscribe(post_document)
 
